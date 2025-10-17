@@ -1,7 +1,7 @@
-import type { NextConfig } from "next";
-import withPWA from "next-pwa";
+import type { NextConfig } from 'next'
+import withPWA from 'next-pwa'
 
-const isDev = process.env.NODE_ENV === 'development';
+const isDev = process.env.NODE_ENV === 'development'
 
 const nextConfig: NextConfig = {
   // Enable experimental features
@@ -182,7 +182,7 @@ const nextConfig: NextConfig = {
     removeConsole: !isDev,
     reactRemoveProperties: !isDev,
   },
-};
+}
 
 // Configure PWA settings
 const pwaConfig = {
@@ -193,7 +193,7 @@ const pwaConfig = {
   runtimeCaching: [
     {
       urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-      handler: 'CacheFirst' as const,
+      handler: 'CacheFirst',
       options: {
         cacheName: 'google-fonts',
         expiration: {
@@ -204,7 +204,7 @@ const pwaConfig = {
     },
     {
       urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-      handler: 'CacheFirst' as const,
+      handler: 'CacheFirst',
       options: {
         cacheName: 'google-fonts-static',
         expiration: {
@@ -215,7 +215,7 @@ const pwaConfig = {
     },
     {
       urlPattern: /\.(?:jpg|jpeg|gif|png|svg|ico|webp)$/i,
-      handler: 'StaleWhileRevalidate' as const,
+      handler: 'StaleWhileRevalidate',
       options: {
         cacheName: 'images',
         expiration: {
@@ -226,7 +226,7 @@ const pwaConfig = {
     },
     {
       urlPattern: /\/_next\/static\/.+\.js$/i,
-      handler: 'CacheFirst' as const,
+      handler: 'CacheFirst',
       options: {
         cacheName: 'next-static-js',
         expiration: {
@@ -237,7 +237,7 @@ const pwaConfig = {
     },
     {
       urlPattern: /\/_next\/static\/css\/.+\.css$/i,
-      handler: 'CacheFirst' as const,
+      handler: 'CacheFirst',
       options: {
         cacheName: 'next-static-css',
         expiration: {
@@ -246,8 +246,39 @@ const pwaConfig = {
         },
       },
     },
+    {
+      urlPattern: /\/api\/stocks\/.*/i,
+      handler: 'NetworkFirst',
+      options: {
+        cacheName: 'stock-data',
+        expiration: {
+          maxEntries: 50,
+          maxAgeSeconds: 5 * 60, // 5 minutes
+        },
+        networkTimeoutSeconds: 10,
+      },
+    },
+    {
+      urlPattern: /\/api\/market\/.*/i,
+      handler: 'NetworkFirst',
+      options: {
+        cacheName: 'market-data',
+        expiration: {
+          maxEntries: 20,
+          maxAgeSeconds: 1 * 60, // 1 minute
+        },
+        networkTimeoutSeconds: 5,
+      },
+    },
   ],
   buildExcludes: [/middleware-manifest\.json$/],
-};
+  cacheOnFrontEndNav: true,
+  reloadOnOnline: true,
+  sw: '/sw.js',
+  workboxOptions: {
+    disableDevLogs: true,
+  },
+}
 
-export default withPWA(pwaConfig)(nextConfig);
+// Export configuration with PWA
+export default withPWA(pwaConfig)(nextConfig)
