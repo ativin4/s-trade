@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "name": "ai-trading-pwa",
   "builds": [
     {
       "src": "package.json",
@@ -17,11 +16,6 @@
       "dest": "/$1"
     }
   ],
-  "functions": {
-    "pages/api/**/*.js": {
-      "maxDuration": 30
-    }
-  },
   "env": {
     "NODE_ENV": "production"
   },
