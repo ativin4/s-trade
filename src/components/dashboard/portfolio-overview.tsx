@@ -1,4 +1,7 @@
+
 import type { PortfolioHolding, BrokerAccount } from '@/app/types'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 
 interface PortfolioOverviewProps {
   holdings: PortfolioHolding[]
@@ -17,42 +20,45 @@ export function PortfolioOverview({ holdings, brokerAccounts }: PortfolioOvervie
   })
 
   return (
-    <div className="bg-white rounded-lg border p-6">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">Portfolio Overview</h2>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <div className="text-center">
-          <p className="text-sm text-gray-500">Total Value</p>
-          <p className="text-2xl font-bold text-gray-900">₹{totalValue.toLocaleString('en-IN')}</p>
+    <Card>
+      <CardHeader>
+        <CardTitle>Portfolio Overview</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground">Total Value</p>
+            <p className="text-2xl font-bold">₹{totalValue.toLocaleString('en-IN')}</p>
+          </div>
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground">Daily Gain/Loss</p>
+            <p className={cn('text-2xl font-bold', totalDailyChange >= 0 ? 'text-bull-500' : 'text-bear-500')}>
+              {totalDailyChange >= 0 ? '+' : ''}₹{totalDailyChange.toLocaleString('en-IN')}
+            </p>
+          </div>
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground">Daily Change %</p>
+            <p className={cn('text-2xl font-bold', dailyChangePercent >= 0 ? 'text-bull-500' : 'text-bear-500')}>
+              {dailyChangePercent.toFixed(2)}%
+            </p>
+          </div>
         </div>
-        <div className="text-center">
-          <p className="text-sm text-gray-500">Daily Gain/Loss</p>
-          <p className={`text-2xl font-bold ${totalDailyChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {totalDailyChange >= 0 ? '+' : ''}₹{totalDailyChange.toLocaleString('en-IN')}
-          </p>
-        </div>
-        <div className="text-center">
-          <p className="text-sm text-gray-500">Daily Change %</p>
-          <p className={`text-2xl font-bold ${dailyChangePercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {dailyChangePercent.toFixed(2)}%
-          </p>
-        </div>
-      </div>
 
-      <div>
-        <h3 className="text-md font-semibold text-gray-800 mb-3">By Broker</h3>
-        <div className="space-y-3">
-          {brokerData.map(account => (
-            <div key={account.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-md">
-              <div>
-                <p className="font-medium text-gray-900">{account.name}</p>
-                <p className="text-sm text-gray-500">{account.holdingCount} holdings</p>
+        <div>
+          <h3 className="text-md font-semibold mb-3">By Broker</h3>
+          <div className="space-y-3">
+            {brokerData.map(account => (
+              <div key={account.id} className="flex justify-between items-center p-3 bg-muted/50 rounded-md">
+                <div>
+                  <p className="font-medium">{account.provider}</p>
+                  <p className="text-sm text-muted-foreground">{account.holdingCount} holdings</p>
+                </div>
+                <p className="font-semibold">₹{account.value.toLocaleString('en-IN')}</p>
               </div>
-              <p className="font-semibold text-gray-900">₹{account.value.toLocaleString('en-IN')}</p>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   )
 }

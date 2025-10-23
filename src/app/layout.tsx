@@ -10,14 +10,18 @@ const inter = Inter({
   variable: '--font-inter'
 })
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: '#21808D',
+}
+
 export const metadata: Metadata = {
   title: 'S-Trade - AI-Powered Stock Trading',
   description: 'Progressive web app for AI-powered stock trading automation with multi-broker integration',
   keywords: ['trading', 'stocks', 'AI', 'automation', 'portfolio', 'investment'],
   authors: [{ name: 'S-Trade Team' }],
   manifest: '/manifest.json',
-  themeColor: '#21808D',
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
   icons: {
     icon: '/icon-192x192.png',
     apple: '/icon-192x192.png',
@@ -32,10 +36,6 @@ export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#21808D" />
-        <link rel="apple-touch-icon" href="/icon-192x192.png" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="S-Trade" />
       </head>

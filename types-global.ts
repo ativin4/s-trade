@@ -199,13 +199,19 @@ export interface OTPResponse {
   confidence: number
 }
 
-export interface APIResponse<T = unknown> {
-  success: boolean
-  data?: T
-  error?: string
-  message?: string
-  timestamp: Date
-}
+export type APIResponse<T = unknown> = | {
+    success: true
+    data: T
+    message?: string
+    timestamp: Date
+  }
+  | {
+    success: false
+    data?: any
+    error: string
+    message?: string
+    timestamp: Date
+  }
 
 export interface PaginatedResponse<T = unknown> extends APIResponse<T[]> {
   pagination: {

@@ -1,5 +1,5 @@
-
 import type { AIAnalysisResponse, UserSettings } from '@/app/types'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 interface AIInsightsProps {
   insights: AIAnalysisResponse[]
@@ -8,10 +8,25 @@ interface AIInsightsProps {
 
 export function AIInsights({ insights, userPreferences }: AIInsightsProps) {
   return (
-    <div className="bg-white rounded-lg border p-6">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">AI Insights</h2>
-      <p>Insights found: {insights.length}</p>
-      {/* Add more detailed insights here */}
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>AI Insights</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {insights.length > 0 ? (
+          <ul className="space-y-4">
+            {insights.map((insight, index) => (
+              <li key={index} className="p-4 bg-muted/50 rounded-lg">
+                <p className="font-semibold">{insight.symbol}</p>
+                <p className="text-sm text-muted-foreground">{insight.recommendation}</p>
+                <p className="text-xs mt-2">Confidence: {insight.confidence}</p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-muted-foreground">No AI insights available at the moment.</p>
+        )}
+      </CardContent>
+    </Card>
   )
 }

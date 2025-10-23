@@ -328,6 +328,12 @@ export interface BrokerStatusCardProps {
   onDisconnect: () => void
 }
 
+export interface TradingSuggestion {
+  symbol: string
+  action: TradeType
+  price: number
+}
+
 // API Route Types
 export interface AuthSession {
   user: {

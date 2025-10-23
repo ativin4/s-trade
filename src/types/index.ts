@@ -1,80 +1,6 @@
-export type BrokerAccount = { id: string; brokerName: string; };
-export type BrokerName = string;
-export type RiskLevel = "LOW" | "MEDIUM" | "HIGH" | "VERY_HIGH";
-export type AIRecommendation = "BUY" | "SELL" | "HOLD" | "STRONG_BUY" | "STRONG_SELL";
+import { type ClientSafeProvider } from "next-auth/react";
 
-export type MarketData = {
-  nifty50: { value: number; changePercent: number };
-  sensex: { value: number; changePercent: number };
-  bankNifty: { value: number; changePercent: number };
-  itIndex: { value: number; changePercent: number };
-};
 
-export type HistoricalData = {
-  close: number;
-  [key: string]: any; // Allow other properties
-};
-
-export type NewsData = {
-  title: string;
-  sentiment: string;
-  source: string;
-  [key: string]: any; // Allow other properties
-};
-
-export type TechnicalIndicators = {
-  sma20: number;
-  sma50: number;
-  ema20: number;
-  rsi: number;
-  macd: {
-    macd: number;
-    signal: number;
-  };
-  bollinger: {
-    upper: number;
-    lower: number;
-  };
-  volume: {
-    ratio: number;
-  };
-};
-
-export type UserSettings = {
-  riskTolerance: string;
-  maxBudgetPerTrade: number;
-  excludedSectors?: string[];
-  preferredMarketCap: string;
-};
-
-export type AIAnalysisRequest = {
-  symbol: string;
-  currentPrice: number;
-  historicalData: HistoricalData[];
-  newsData: NewsData[];
-  technicalIndicators: TechnicalIndicators;
-  userSettings: UserSettings;
-};
-
-export type AIAnalysisResponse = {
-  symbol: string;
-  recommendation: AIRecommendation;
-  confidence: number;
-  reasoning: string;
-  targetPrice?: number | undefined;
-  stopLoss?: number | undefined;
-  timeframe: string;
-  riskLevel: RiskLevel;
-  keyFactors: string[];
-  createdAt: Date;
-};
-
-export class ExternalAPIError extends Error {
-  constructor(message: string, public statusCode?: number, public details?: any) {
-    super(message);
-    this.name = 'ExternalAPIError';
-  }
-}
 
 export class AuthenticationError extends Error {
   constructor(message: string = 'Authentication required') {
@@ -83,15 +9,77 @@ export class AuthenticationError extends Error {
   }
 }
 
-export type APIResponse<T> = {
-  success: true;
-  data: T;
+export class ExternalAPIError extends Error {
+  constructor(message: string, public service: string) {
+    super(message);
+    this.name = 'ExternalAPIError';
+  }
+}
+
+export interface APIResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
   message: string;
   timestamp: Date;
-} | {
-  success: false;
-  error: string;
-  message: string;
-  timestamp: Date;
-  data?: any;
-};
+}
+
+export interface AIAnalysisRequest {
+  symbol: string;
+  currentPrice: number;
+  historicalData: any[];
+  newsData?: any[];
+  technicalIndicators?: any;
+  userSettings?: any;
+}
+
+export interface AIAnalysisResponse {
+  symbol: string;
+  recommendation: string;
+  confidence: number;
+  reasoning: string;
+  targetPrice?: number;
+  stopLoss?: number;
+  timeframe?: string;
+  riskLevel?: string;
+  keyFactors?: any;
+}
+
+export type BrokerName = '5paisa' | 'zerodha' | 'groww';
+
+export interface BrokerAccount {
+  id: string;
+  userId: string;
+  brokerName: BrokerName;
+  accountId: string;
+  apiKey: string;
+  apiSecret: string | null;
+  accessToken: string | null;
+  isActive: boolean;
+  balance: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface UserSettings {
+    id: string;
+    userId: string;
+    maxBudgetPerTrade: number | null;
+    riskTolerance: string | null;
+    autoTradingEnabled: boolean | null;
+    excludedSectors: string[];
+    preferredMarketCap: string | null;
+    otpMethod: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+export interface Trade {
+    id: string;
+    symbol: string;
+    quantity: number;
+    price: number;
+    type: 'BUY' | 'SELL';
+    status: 'PENDING' | 'EXECUTED' | 'CANCELLED';
+    createdAt: Date;
+}

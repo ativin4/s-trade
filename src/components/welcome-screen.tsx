@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { signIn, getProviders } from 'next-auth/react'
+import { signIn } from 'next-auth/react'
 import { motion } from 'framer-motion'
+import toast from 'react-hot-toast'
 import { 
   TrendingUp, 
   Brain, 
@@ -17,8 +18,10 @@ import {
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 
+import { type ClientSafeProvider } from 'next-auth/react'
+
 interface WelcomeScreenProps {
-  providers?: Record<string, any>
+  providers?: Record<string, ClientSafeProvider>
 }
 
 export function WelcomeScreen({ providers }: WelcomeScreenProps) {
@@ -30,6 +33,7 @@ export function WelcomeScreen({ providers }: WelcomeScreenProps) {
       await signIn(providerId, { callbackUrl: '/dashboard' })
     } catch (error) {
       console.error('Sign in error:', error)
+      toast.error('Something went wrong. Please try again.')
       setIsSigningIn(null)
     }
   }

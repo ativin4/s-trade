@@ -71,7 +71,7 @@ npm run dev
    - Go to your Vercel project dashboard
    - Navigate to **Storage** → **Create Database**
    - Select **PostgreSQL** 
-   - Name: `ai-trading-db`
+   - Name: `s-trade`
    - Region: Choose closest to your users
 
 2. **Import Schema**

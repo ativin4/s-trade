@@ -6,7 +6,7 @@ import { WelcomeScreen } from '@/components/welcome-screen'
 
 export default async function HomePage() {
   const session = await getServerSession(authOptions)
-  const providers = (await getProviders()) ?? {}
+  const providers = authOptions.providers.map(provider => ({ id: provider.id, name: provider.name }))
 
   if (session) {
     redirect('/dashboard')

@@ -1,41 +1,13 @@
 import type { MarketData } from "@/app/types";
 
+import { getKiteMarketData, getUpstoxMarketData } from "@/lib/market-data";
+
 export async function getMarketData(): Promise<MarketData> {
-  // In a real app, you would fetch this from a market data provider API.
-  // For now, we return mock data.
-  return {
-    nifty50: {
-      value: 18500,
-      change: 100,
-      changePercent: 0.54,
-      high: 18550,
-      low: 18450,
-      volume: 1000000,
-    },
-    sensex: {
-      value: 62000,
-      change: 200,
-      changePercent: 0.32,
-      high: 62100,
-      low: 61900,
-      volume: 500000,
-    },
-    bankNifty: {
-      value: 43000,
-      change: -100,
-      changePercent: -0.23,
-      high: 43100,
-      low: 42900,
-      volume: 800000,
-    },
-    itIndex: {
-      value: 35000,
-      change: 150,
-      changePercent: 0.43,
-      high: 35100,
-      low: 34900,
-      volume: 600000,
-    },
+  try {
+    return await getKiteMarketData();
+  } catch (error) {
+    console.error("Failed to fetch market data from Kite, trying Upstox:", error);
+    return await getUpstoxMarketData();
   }
 }
 

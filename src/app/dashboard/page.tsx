@@ -1,6 +1,7 @@
 import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
-import { prisma } from '@/lib/prisma'
+import { getServerSession } from 'next-auth'
+import { authOptions, prisma } from '@/lib/auth'
 import { DashboardHeader } from '@/components/dashboard/dashboard-header'
 import { PortfolioOverview } from '@/components/dashboard/portfolio-overview'
 import { AIInsights } from '@/components/dashboard/ai-insights'
@@ -14,6 +15,33 @@ import { DashboardSkeleton } from '@/components/dashboard/dashboard-skeleton'
 import { TopMovers } from '@/components/dashboard/top-movers'
 import { RecentActivity } from '@/app/dashboard/recent-activity'
 import type { BrokerAccount } from 'types-global'
+import { mapPrismaSettingsToApp } from '@/lib/user'
+
+async function getUserData(userId: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, name: true, email: true, image: true },
+  });
+
+  if (!user) {
+    return null;
+  }
+
+  const appSettings = await prisma.userSettings.findUnique({
+    where: { userId },
+  });
+
+  return {
+    user,
+    appSettings: mapPrismaSettingsToApp(appSettings),
+  };
+}
+
+async function getBrokerAccounts(userId: string) {
+  return prisma.brokerAccount.findMany({
+    where: { userId },
+  });
+}
 
 export default async function DashboardPage() {
   return (
@@ -32,25 +60,22 @@ interface DashboardContentProps {
 
 async function DashboardContent() {
   try {
-    // The PageWrapper ensures session exists, but we still need the ID for data fetching.
-    // In a real app, you might get this from a shared server context.
-    const { user: sessionUser } = (await (await import('next-auth')).getServerSession((await import('@/lib/auth')).authOptions))!
-    const userId = sessionUser!.id!
-
-    // Fetch user data and broker accounts
-    const [user, brokerAccounts] = await Promise.all([
-      prisma.user.findUnique({
-        where: { id: userId },
-        include: { settings: true }
-      }),
-      prisma.brokerAccount.findMany({
-        where: { userId, isActive: true }
-      })
-    ])
-
-    if (!user) {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
       redirect('/auth/signin')
     }
+    const userId = session.user.id
+
+    const [userData, brokerAccounts] = await Promise.all([
+      getUserData(userId),
+      getBrokerAccounts(userId),
+    ]);
+
+    if (!userData) {
+      redirect('/auth/signin')
+    }
+
+    const { user, appSettings } = userData;
 
     // Fetch portfolio data from all connected brokers
     const portfolioData = await getBrokerPortfolios(brokerAccounts as BrokerAccount[])
@@ -58,7 +83,7 @@ async function DashboardContent() {
     // Get AI insights for portfolio holdings
     const aiInsights = await getAIInsights(
       portfolioData.map(holding => holding.symbol),
-      user.settings
+      appSettings
     )
 
     // Get current market data
@@ -97,7 +122,7 @@ async function DashboardContent() {
             {/* AI Insights */}
             <AIInsights 
               insights={aiInsights}
-              userPreferences={user.settings}
+              userPreferences={appSettings}
             />
           </div>
         </div>

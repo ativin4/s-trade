@@ -17,14 +17,7 @@ export function Providers({ children }: ProvidersProps) {
       queries: {
         staleTime: 60 * 1000, // 1 minute
         refetchOnWindowFocus: false,
-        retry: (failureCount, error) => {
-          // Don't retry on 4xx errors
-          if (error && typeof error === 'object' && 'status' in error) {
-            const status = error.status as number
-            if (status >= 400 && status < 500) return false
-          }
-          return failureCount < 3
-        }
+        retry: 1
       },
       mutations: {
         retry: 1

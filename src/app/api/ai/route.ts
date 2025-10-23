@@ -1,113 +1,91 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
-import { z } from 'zod'
-import { authOptions } from '@/lib/auth'
+import { authOptions, prisma } from '@/lib/auth'
 import { GeminiAIService } from '@/lib/services/gemini'
-import { prisma } from '@/lib/prisma'
 import { AuthenticationError, ExternalAPIError } from '@/types'
 import type { 
   APIResponse, 
   AIAnalysisRequest, 
   AIAnalysisResponse, 
 } from '@/types'
+import { mapPrismaSettingsToApp } from '@/lib/user'
 
-// Request validation schema
-const analyzeRequestSchema = z.object({
-  symbol: z.string().min(1, 'Symbol is required'),
-  currentPrice: z.number().positive('Price must be positive'),
-  historicalData: z.array(z.object({
-    timestamp: z.string().datetime(),
-    open: z.number(),
-    high: z.number(),
-    low: z.number(),
-    close: z.number(),
-    volume: z.number()
-  })).min(1, 'Historical data is required'),
-  newsData: z.array(z.object({
-    id: z.string(),
-    title: z.string(),
-    summary: z.string(),
-    sentiment: z.enum(['POSITIVE', 'NEGATIVE', 'NEUTRAL']),
-    source: z.string(),
-    publishedAt: z.string().datetime(),
-    symbols: z.array(z.string()),
-    url: z.string().url()
-  })).optional(),
-  technicalIndicators: z.object({
-    sma20: z.number(),
-    sma50: z.number(),
-    ema20: z.number(),
-    rsi: z.number(),
-    macd: z.object({
-      macd: z.number(),
-      signal: z.number(),
-      histogram: z.number()
-    }),
-    bollinger: z.object({
-      upper: z.number(),
-      middle: z.number(),
-      lower: z.number()
-    }),
-    volume: z.object({
-      avg: z.number(),
-      current: z.number(),
-      ratio: z.number()
-    })
-  }).optional(),
-  includeUserPreferences: z.boolean().default(true)
-})
-
-type AnalyzeRequest = z.infer<typeof analyzeRequestSchema>
 
 export async function POST(request: NextRequest): Promise<NextResponse<APIResponse<AIAnalysisResponse>>> {
   try {
     // Verify authentication
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
-      throw new AuthenticationError('Please sign in to access AI analysis')
+      throw new AuthenticationError('Please sign in to access AI analysis');
     }
 
     // Parse and validate request body
-    const body = await request.json()
-    const validatedData = analyzeRequestSchema.parse(body)
+    const body = await request.json();
+    // Manual validation and defaults
+    const symbol = typeof body.symbol === 'string' && body.symbol.length > 0 ? body.symbol : '';
+    const currentPrice = typeof body.currentPrice === 'number' && body.currentPrice > 0 ? body.currentPrice : 0;
+    const historicalData = Array.isArray(body.historicalData)
+      ? body.historicalData.map((point: {
+          timestamp?: string;
+          open?: number;
+          high?: number;
+          low?: number;
+          close?: number;
+          volume?: number;
+        }) => ({
+          ...point,
+          timestamp: point.timestamp ? new Date(point.timestamp).toISOString() : new Date().toISOString(),
+          open: typeof point.open === 'number' ? point.open : 0,
+          high: typeof point.high === 'number' ? point.high : 0,
+          low: typeof point.low === 'number' ? point.low : 0,
+          close: typeof point.close === 'number' ? point.close : 0,
+          volume: typeof point.volume === 'number' ? point.volume : 0,
+        })
+      )
+      : [];
+    const newsData = Array.isArray(body.newsData)
+      ? body.newsData.map((news: {
+          publishedAt?: string;
+          sentiment?: string;
+          symbols?: string[];
+          url?: string;
+          [key: string]: any;
+        }) => ({
+          ...news,
+          publishedAt: news.publishedAt ? new Date(news.publishedAt).toISOString() : new Date().toISOString(),
+          sentiment: ['POSITIVE', 'NEGATIVE', 'NEUTRAL'].includes(news.sentiment || '') ? news.sentiment : 'NEUTRAL',
+          symbols: Array.isArray(news.symbols) ? news.symbols : [],
+          url: typeof news.url === 'string' ? news.url : '',
+        })
+      )
+      : [];
+    const technicalIndicators = typeof body.technicalIndicators === 'object' && body.technicalIndicators !== null ? body.technicalIndicators : undefined;
+    const includeUserPreferences = typeof body.includeUserPreferences === 'boolean' ? body.includeUserPreferences : true;
 
     // Get user settings if requested
-    let userSettings = null
-    if (validatedData.includeUserPreferences) {
-      userSettings = await prisma.userSettings.findUnique({
+    let userSettings = null;
+    if (includeUserPreferences) {
+      const prismaSettings = await prisma.userSettings.findUnique({
         where: { userId: session.user.id }
-      })
+      });
+      userSettings = mapPrismaSettingsToApp(prismaSettings);
     }
 
     // Prepare AI analysis request
     const aiRequest: AIAnalysisRequest = {
-      symbol: validatedData.symbol,
-      currentPrice: validatedData.currentPrice,
-      historicalData: validatedData.historicalData.map(point => ({
-        ...point,
-        timestamp: new Date(point.timestamp)
-      })),
-      newsData: (validatedData.newsData ?? []).map(news => ({
-        ...news,
-        publishedAt: new Date(news.publishedAt)
-      })),
-      technicalIndicators: validatedData.technicalIndicators ?? {
-        sma20: 0,
-        sma50: 0,
-        ema20: 0,
-        rsi: 0,
-        macd: { macd: 0, signal: 0, histogram: 0 },
-        bollinger: { upper: 0, middle: 0, lower: 0 },
-        volume: { avg: 0, current: 0, ratio: 0 }
-      },
+      symbol,
+      currentPrice,
+      historicalData,
+      newsData,
+      technicalIndicators,
       userSettings: userSettings || undefined
-    }
+    };
 
     // Initialize Gemini AI service
-    const geminiService = new GeminiAIService()
+    const geminiService = new GeminiAIService();
 
     // Perform AI analysis
-    const analysis = await geminiService.analyzeStock(aiRequest)
+    const analysis = await geminiService.analyzeStock(aiRequest);
 
     // Save analysis to database for caching and history
     await prisma.aIAnalysis.create({
@@ -125,7 +103,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<APIRespon
         requestData: aiRequest,
         responseData: analysis
       }
-    })
+    });
 
     // Return successful response
     return NextResponse.json({
@@ -133,26 +111,10 @@ export async function POST(request: NextRequest): Promise<NextResponse<APIRespon
       data: analysis,
       message: 'Stock analysis completed successfully',
       timestamp: new Date()
-    }, { status: 200 })
+    }, { status: 200 });
 
   } catch (error) {
-    console.error('AI analysis error:', error)
-
-    // Handle validation errors
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({
-        success: false,
-        error: 'VALIDATION_ERROR',
-        message: 'Invalid request data',
-        data: {
-          issues: error.errors.map(err => ({
-            path: err.path.join('.'),
-            message: err.message
-          }))
-        },
-        timestamp: new Date()
-      }, { status: 400 })
-    }
+    console.error('AI analysis error:', error);
 
     // Handle authentication errors
     if (error instanceof AuthenticationError) {
@@ -161,7 +123,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<APIRespon
         error: 'AUTHENTICATION_ERROR',
         message: error.message,
         timestamp: new Date()
-      }, { status: 401 })
+      }, { status: 401 });
     }
 
     // Handle external API errors
@@ -171,7 +133,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<APIRespon
         error: 'AI_SERVICE_ERROR',
         message: 'Failed to analyze stock with AI service',
         timestamp: new Date()
-      }, { status: 502 })
+      }, { status: 502 });
     }
 
     // Handle unexpected errors
@@ -180,15 +142,15 @@ export async function POST(request: NextRequest): Promise<NextResponse<APIRespon
       error: 'INTERNAL_SERVER_ERROR',
       message: 'An unexpected error occurred',
       timestamp: new Date()
-    }, { status: 500 })
+    }, { status: 500 });
   }
 }
 
 // Bulk analysis endpoint
-const bulkAnalyzeSchema = z.object({
-  symbols: z.array(z.string()).min(1).max(20, 'Maximum 20 symbols allowed'),
-  includeUserPreferences: z.boolean().default(true)
-})
+type BulkAnalyzeRequest = {
+  symbols: string[];
+  includeUserPreferences?: boolean;
+};
 
 export async function PUT(request: NextRequest): Promise<NextResponse<APIResponse<AIAnalysisResponse[]>>> {
   try {
@@ -197,29 +159,30 @@ export async function PUT(request: NextRequest): Promise<NextResponse<APIRespons
       throw new AuthenticationError()
     }
 
-    const body = await request.json()
-    const { symbols, includeUserPreferences } = bulkAnalyzeSchema.parse(body)
+    const body: BulkAnalyzeRequest = await request.json();
+    const symbols = Array.isArray(body.symbols) ? body.symbols.slice(0, 20) : [];
+    const includeUserPreferences = body.includeUserPreferences ?? true;
 
     // Get user settings
-    let userSettings = null
+    let userSettings = null;
     if (includeUserPreferences) {
-      userSettings = await prisma.userSettings.findUnique({
+      const prismaSettings = await prisma.userSettings.findUnique({
         where: { userId: session.user.id }
-      })
+      });
+      userSettings = mapPrismaSettingsToApp(prismaSettings);
     }
 
-    const geminiService = new GeminiAIService()
-    const analyses: AIAnalysisResponse[] = []
+    const geminiService = new GeminiAIService();
+    const analyses: AIAnalysisResponse[] = [];
 
     // Process symbols in batches to avoid rate limits
-    const batchSize = 5
+    const batchSize = 5;
     for (let i = 0; i < symbols.length; i += batchSize) {
-      const batch = symbols.slice(i, i + batchSize)
-      
+      const batch = symbols.slice(i, i + batchSize);
       const batchPromises = batch.map(async (symbol) => {
         try {
           // Get basic stock data for analysis
-          const stockData = await getStockData(symbol)
+          const stockData = await getStockData(symbol);
           const analysis = await geminiService.analyzeStock({
             symbol,
             currentPrice: stockData.currentPrice,
@@ -227,17 +190,15 @@ export async function PUT(request: NextRequest): Promise<NextResponse<APIRespons
             newsData: stockData.newsData,
             technicalIndicators: stockData.technicalIndicators,
             userSettings: userSettings || undefined
-          })
-          
-          return analysis
+          });
+          return analysis;
         } catch (error) {
-          console.error(`Error analyzing ${symbol}:`, error)
-          return null
+          console.error(`Error analyzing ${symbol}:`, error);
+          return null;
         }
-      })
-
-      const batchResults = await Promise.all(batchPromises)
-      analyses.push(...batchResults.filter(Boolean) as AIAnalysisResponse[])
+      });
+      const batchResults = await Promise.all(batchPromises);
+      analyses.push(...batchResults.filter(Boolean) as AIAnalysisResponse[]);
     }
 
     return NextResponse.json({
@@ -245,43 +206,40 @@ export async function PUT(request: NextRequest): Promise<NextResponse<APIRespons
       data: analyses,
       message: `Analyzed ${analyses.length} stocks successfully`,
       timestamp: new Date()
-    })
+    });
 
   } catch (error) {
-    console.error('Bulk analysis error:', error)
-    
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({
-        success: false,
-        error: 'VALIDATION_ERROR',
-        message: 'Invalid request data',
-        timestamp: new Date()
-      }, { status: 400 })
-    }
-
+    console.error('Bulk analysis error:', error);
     return NextResponse.json({
       success: false,
       error: 'INTERNAL_SERVER_ERROR',
       message: 'Failed to perform bulk analysis',
       timestamp: new Date()
-    }, { status: 500 })
+    });
   }
 }
 
+import { getKiteMarketData } from '@/lib/market-data'
+
 // Helper function to get stock data
 async function getStockData(symbol: string) {
-  // This would integrate with actual stock data providers
-  // For now, return mock data structure
+  const marketData = await getKiteMarketData();
+  // This is a simplified implementation. In a real app, you would need to
+  // fetch the specific stock data from the market data provider.
+  const stockData = (marketData as any)[symbol];
+  if (!stockData) {
+    throw new Error(`Stock data not found for symbol: ${symbol}`);
+  }
   return {
-    currentPrice: 100,
+    currentPrice: stockData.value,
     historicalData: [
       {
         timestamp: new Date(),
-        open: 99,
-        high: 101,
-        low: 98,
-        close: 100,
-        volume: 1000000
+        open: stockData.low,
+        high: stockData.high,
+        low: stockData.low,
+        close: stockData.value,
+        volume: stockData.volume
       }
     ],
     newsData: [],

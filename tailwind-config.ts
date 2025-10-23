@@ -3,7 +3,6 @@ import type { Config } from 'tailwindcss'
 const config: Config = {
   darkMode: ['class'],
   content: [
-    './pages/**/*.{ts,tsx}',
     './components/**/*.{ts,tsx}',
     './app/**/*.{ts,tsx}',
     './src/**/*.{ts,tsx}',
@@ -57,36 +56,36 @@ const config: Config = {
         },
         // Trading specific colors
         success: {
-          DEFAULT: '#22c55e',
-          light: '#86efac',
-          dark: '#166534',
+          DEFAULT: 'hsl(var(--success))',
+          light: 'hsl(var(--success-light))',
+          dark: 'hsl(var(--success-dark))',
         },
         danger: {
-          DEFAULT: '#ef4444',
-          light: '#fca5a5',
-          dark: '#991b1b',
+          DEFAULT: 'hsl(var(--danger))',
+          light: 'hsl(var(--danger-light))',
+          dark: 'hsl(var(--danger-dark))',
         },
         warning: {
-          DEFAULT: '#f59e0b',
-          light: '#fde047',
-          dark: '#92400e',
+          DEFAULT: 'hsl(var(--warning))',
+          light: 'hsl(var(--warning-light))',
+          dark: 'hsl(var(--warning-dark))',
         },
         // Market colors
         bull: {
-          DEFAULT: '#22c55e',
-          50: '#f0fdf4',
-          100: '#dcfce7',
-          500: '#22c55e',
-          600: '#16a34a',
-          700: '#15803d',
+          DEFAULT: 'hsl(var(--bull))',
+          50: 'hsl(var(--bull-50))',
+          100: 'hsl(var(--bull-100))',
+          500: 'hsl(var(--bull-500))',
+          600: 'hsl(var(--bull-600))',
+          700: 'hsl(var(--bull-700))',
         },
         bear: {
-          DEFAULT: '#ef4444',
-          50: '#fef2f2',
-          100: '#fee2e2',
-          500: '#ef4444',
-          600: '#dc2626',
-          700: '#b91c1c',
+          DEFAULT: 'hsl(var(--bear))',
+          50: 'hsl(var(--bear-50))',
+          100: 'hsl(var(--bear-100))',
+          500: 'hsl(var(--bear-500))',
+          600: 'hsl(var(--bear-600))',
+          700: 'hsl(var(--bear-700))',
         }
       },
       borderRadius: {

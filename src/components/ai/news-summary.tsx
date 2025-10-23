@@ -10,16 +10,29 @@ interface NewsSummaryProps {
 }
 
 export function NewsSummary({ summary }: NewsSummaryProps) {
+  if (!summary) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>AI News Summary</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground">No news summary available.</p>
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>AI News Summary</CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="text-gray-600 mb-4">{summary.summary}</p>
+        <p className="text-muted-foreground mb-4">{summary.summary}</p>
         <div className="space-y-2">
           <h4 className="font-medium">Key Points</h4>
-          <ul className="list-disc list-inside">
+          <ul className="list-disc list-inside text-muted-foreground">
             {summary.keyPoints.map((point, index) => (
               <li key={index}>{point}</li>
             ))}

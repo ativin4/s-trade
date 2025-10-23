@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/auth'
 import { BrokerConnectionCard } from '@/components/brokers/broker-connection-card'
 import { PortfolioSyncStatus } from '@/components/brokers/portfolio-sync-status'
 import { AddBrokerDialog } from '@/components/brokers/add-broker-dialog'
@@ -8,6 +8,7 @@ import { Plus, AlertCircle, CheckCircle, XCircle } from 'lucide-react'
 import { PageWrapper } from '@/components/layout/page-wrapper'
 import { PageHeader } from '@/components/layout/page-header'
 import type { BrokerAccount, BrokerName } from '@/types'
+import { mapPrismaBrokerAccountToApp } from '@/lib/broker'
 
 
 export default async function BrokersPage() {
@@ -37,10 +38,11 @@ async function BrokersContent() {
   if (!sessionUser || !sessionUser.id) throw new Error('No session user');
   const userId = sessionUser.id;
 
-  const brokerAccounts = await prisma.brokerAccount.findMany({
+  const prismaAccounts = await prisma.brokerAccount.findMany({
     where: { userId },
-    orderBy: { createdAt: 'desc' }
   })
+
+  const brokerAccounts = prismaAccounts.map(mapPrismaBrokerAccountToApp);
 
   const supportedBrokers: Array<{
     name: BrokerName

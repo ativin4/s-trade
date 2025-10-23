@@ -1,191 +1,84 @@
 import type { NextConfig } from "next";
-import withPWA from "next-pwa";
+import withPWA, { PWAConfig } from 'next-pwa'
 
-const isDev = process.env.NODE_ENV === 'development';
+const isDev = process.env.NODE_ENV === 'development'
 
 const nextConfig: NextConfig = {
-  // Enable experimental features
   experimental: {
-    // Use Turbopack for faster builds in development
-    turbo: {
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
-        },
-      },
-    },
-    // Server actions for form handling
     serverActions: {
-      allowedOrigins: ['localhost:3000'],
+      allowedOrigins: process.env.NEXT_PUBLIC_APP_URL
+        ? [new URL(process.env.NEXT_PUBLIC_APP_URL).hostname]
+        : ['localhost:3000'],
     },
-    // Typed routes for better type safety
-    typedRoutes: true,
   },
-
-  // TypeScript configuration
+  typedRoutes: true,
   typescript: {
-    // Don't fail build on type errors in development
+    // Allow faster dev iteration; CI should run full type checks
     ignoreBuildErrors: isDev,
   },
-
-  // ESLint configuration
   eslint: {
-    // Don't fail build on ESLint errors in development
     ignoreDuringBuilds: isDev,
   },
-
-  // Image optimization
   images: {
     domains: [
       'avatars.githubusercontent.com',
       'lh3.googleusercontent.com',
       'images.unsplash.com',
-      'cdn.jsdelivr.net'
+      'cdn.jsdelivr.net',
     ],
     formats: ['image/avif', 'image/webp'],
   },
-
-  // Headers for security and performance
   async headers() {
     return [
       {
         source: '/(.*)',
         headers: [
-          {
-            key: 'X-Frame-Options',
-            value: 'DENY',
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
-          {
-            key: 'Referrer-Policy',
-            value: 'origin-when-cross-origin',
-          },
-          {
-            key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=()',
-          },
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'origin-when-cross-origin' },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+          { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
         ],
       },
       {
         source: '/api/(.*)',
         headers: [
-          {
-            key: 'Cache-Control',
-            value: 'no-store, no-cache, must-revalidate, proxy-revalidate',
-          },
+          { key: 'Cache-Control', value: 'no-store, no-cache, must-revalidate, proxy-revalidate' },
         ],
       },
     ]
   },
-
-  // Rewrites for API routes and external services
   async rewrites() {
     return [
-      // Proxy for external stock data APIs to avoid CORS
       {
         source: '/api/proxy/stock-data/:path*',
-        destination: 'https://api.upstox.com/:path*',
+        destination: `${process.env.UPSTOX_API_URL}/:path*`,
       },
       {
         source: '/api/proxy/market-data/:path*',
-        destination: 'https://api.kite.trade/:path*',
+        destination: `${process.env.KITE_API_URL}/:path*`,
       },
     ]
   },
-
-  // Redirects for better UX
   async redirects() {
     return [
-      {
-        source: '/login',
-        destination: '/auth/signin',
-        permanent: true,
-      },
-      {
-        source: '/signup',
-        destination: '/auth/signup',
-        permanent: true,
-      },
-      {
-        source: '/profile',
-        destination: '/dashboard',
-        permanent: false,
-      },
+      { source: '/login', destination: '/auth/signin', permanent: true },
+      { source: '/signup', destination: '/auth/signup', permanent: true },
+      { source: '/profile', destination: '/dashboard', permanent: false },
     ]
   },
-
-  // Environment variables validation
-  env: {
-    CUSTOM_KEY: process.env.CUSTOM_KEY,
-  },
-
-  // Webpack configuration for better performance
-  webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
-    // Add support for importing SVGs as React components
-    config.module.rules.push({
-      test: /\.svg$/,
-      use: ['@svgr/webpack'],
-    })
-
-    // Optimize bundle size
-    if (!dev && !isServer) {
-      config.optimization.splitChunks.cacheGroups = {
-        ...config.optimization.splitChunks.cacheGroups,
-        vendor: {
-          test: /[\\/]node_modules[\\/]/,
-          name: 'vendors',
-          chunks: 'all',
-          enforce: true,
-        },
-        common: {
-          name: 'common',
-          minChunks: 2,
-          chunks: 'all',
-          enforce: true,
-        },
-      }
-    }
-
-    // Add custom webpack plugins for development
-    if (dev) {
-      config.plugins.push(
-        new webpack.DefinePlugin({
-          'process.env.NODE_ENV': JSON.stringify('development'),
-        })
-      )
-    }
-
-    return config
-  },
-
-  // Compression and optimization
+  // removed custom webpack svg loader to be Turbopack-compatible
   compress: true,
   poweredByHeader: false,
   generateEtags: false,
-
-  // Output configuration
   output: 'standalone',
-  
-  // Logging configuration
-  logging: {
-    fetches: {
-      fullUrl: true,
-    },
-  },
-
-  // Runtime configuration for better performance
   compiler: {
     removeConsole: !isDev,
     reactRemoveProperties: !isDev,
   },
-};
+}
 
-// Configure PWA settings
-const pwaConfig = {
+const pwaConfig: PWAConfig = {
   dest: 'public',
   disable: isDev,
   register: true,
@@ -193,61 +86,48 @@ const pwaConfig = {
   runtimeCaching: [
     {
       urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-      handler: 'CacheFirst' as const,
+      handler: 'CacheFirst',
       options: {
         cacheName: 'google-fonts',
-        expiration: {
-          maxEntries: 4,
-          maxAgeSeconds: 365 * 24 * 60 * 60, // 1 year
-        },
+        expiration: { maxEntries: 4, maxAgeSeconds: 365 * 24 * 60 * 60 },
       },
     },
     {
       urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-      handler: 'CacheFirst' as const,
+      handler: 'CacheFirst',
       options: {
         cacheName: 'google-fonts-static',
-        expiration: {
-          maxEntries: 4,
-          maxAgeSeconds: 365 * 24 * 60 * 60, // 1 year
-        },
+        expiration: { maxEntries: 4, maxAgeSeconds: 365 * 24 * 60 * 60 },
       },
     },
     {
       urlPattern: /\.(?:jpg|jpeg|gif|png|svg|ico|webp)$/i,
-      handler: 'StaleWhileRevalidate' as const,
+      handler: 'StaleWhileRevalidate',
       options: {
         cacheName: 'images',
-        expiration: {
-          maxEntries: 100,
-          maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
-        },
+        expiration: { maxEntries: 100, maxAgeSeconds: 30 * 24 * 60 * 60 },
       },
     },
     {
       urlPattern: /\/_next\/static\/.+\.js$/i,
-      handler: 'CacheFirst' as const,
+      handler: 'CacheFirst',
       options: {
         cacheName: 'next-static-js',
-        expiration: {
-          maxEntries: 64,
-          maxAgeSeconds: 365 * 24 * 60 * 60, // 1 year
-        },
+        expiration: { maxEntries: 64, maxAgeSeconds: 365 * 24 * 60 * 60 },
       },
     },
     {
       urlPattern: /\/_next\/static\/css\/.+\.css$/i,
-      handler: 'CacheFirst' as const,
+      handler: 'CacheFirst',
       options: {
         cacheName: 'next-static-css',
-        expiration: {
-          maxEntries: 32,
-          maxAgeSeconds: 365 * 24 * 60 * 60, // 1 year
-        },
+        expiration: { maxEntries: 32, maxAgeSeconds: 365 * 24 * 60 * 60 },
       },
     },
   ],
   buildExcludes: [/middleware-manifest\.json$/],
-};
+}
 
-export default withPWA(pwaConfig)(nextConfig);
+// Use double type assertion to handle next-pwa type mismatches with newer Next.js types
+const config = isDev ? nextConfig : withPWA(pwaConfig)(nextConfig)
+export default config
