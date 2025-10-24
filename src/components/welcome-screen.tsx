@@ -137,10 +137,7 @@ export function WelcomeScreen({ providers }: WelcomeScreenProps) {
               transition={{ duration: 0.6, delay: 0.4 }}
               className="flex flex-wrap justify-center items-center gap-8 text-gray-400 text-sm"
             >
-              <div className="flex items-center gap-2">
-                <ShieldIcon fontSize="small" />
-                <span>SEBI Compliant</span>
-              </div>
+
               <div className="flex items-center gap-2">
                 <PsychologyIcon fontSize="small" />
                 <span>AI-Powered</span>
@@ -198,23 +195,7 @@ export function WelcomeScreen({ providers }: WelcomeScreenProps) {
         </div>
       </div>
 
-      {/* Supported Brokers Section */}
-      <div className="container mx-auto px-4 py-16">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          viewport={{ once: true }}
-          className="text-center"
-        >
-          <h3 className="text-2xl font-bold text-white mb-8">Trusted by Leading Brokers</h3>
-          <div className="flex justify-center items-center gap-12">
-            <img src="/5paisa.svg" alt="5paisa" className="h-8" />
-            <img src="/zerodha.svg" alt="Zerodha" className="h-8" />
-            <img src="/groww.svg" alt="Groww" className="h-8" />
-          </div>
-        </motion.div>
-      </div>
+
     </div>
   )
 }
