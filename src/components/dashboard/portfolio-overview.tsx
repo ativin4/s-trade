@@ -1,6 +1,7 @@
 
 import type { PortfolioHolding, BrokerAccount } from '@/app/types'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader} from '@/components/ui/card'
+import Typography from '@mui/material/Typography'
 import { cn } from '@/lib/utils'
 
 interface PortfolioOverviewProps {
@@ -22,7 +23,7 @@ export function PortfolioOverview({ holdings, brokerAccounts }: PortfolioOvervie
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Portfolio Overview</CardTitle>
+        <Typography variant='h6'>Portfolio Overview</Typography>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
@@ -50,7 +51,7 @@ export function PortfolioOverview({ holdings, brokerAccounts }: PortfolioOvervie
             {brokerData.map(account => (
               <div key={account.id} className="flex justify-between items-center p-3 bg-muted/50 rounded-md">
                 <div>
-                  <p className="font-medium">{account.provider}</p>
+                  <p className="font-medium">{account.brokerName}</p>
                   <p className="text-sm text-muted-foreground">{account.holdingCount} holdings</p>
                 </div>
                 <p className="font-semibold">₹{account.value.toLocaleString('en-IN')}</p>

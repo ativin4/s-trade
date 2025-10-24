@@ -1,5 +1,6 @@
 import type { AIAnalysisResponse, UserSettings } from '@/app/types'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader} from '@/components/ui/card'
+import Typography from '@mui/material/Typography'
 
 interface AIInsightsProps {
   insights: AIAnalysisResponse[]
@@ -10,7 +11,7 @@ export function AIInsights({ insights, userPreferences }: AIInsightsProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>AI Insights</CardTitle>
+        <Typography variant='h6'>AI Insights</Typography>
       </CardHeader>
       <CardContent>
         {insights.length > 0 ? (

@@ -1,9 +1,8 @@
-
 import type { Trade } from '@/types'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Card, CardContent, CardHeader} from '@/components/ui/card'
+import Typography from '@mui/material/Typography'
+import { Table, TableBody, TableCell, TableHead, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { cn } from '@/lib/utils'
 
 interface TradeHistoryProps {
   trades: (Trade & { brokerAccount: { brokerName: string } })[]
@@ -13,21 +12,21 @@ export function TradeHistory({ trades }: TradeHistoryProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Trade History</CardTitle>
+        <Typography variant='h6'>Trade History</Typography>
       </CardHeader>
       <CardContent>
         <Table>
-          <TableHeader>
+          <TableHead>
             <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Broker</TableHead>
-              <TableHead>Symbol</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Quantity</TableHead>
-              <TableHead>Price</TableHead>
-              <TableHead>Total</TableHead>
+              <TableCell>Date</TableCell>
+              <TableCell>Broker</TableCell>
+              <TableCell>Symbol</TableCell>
+              <TableCell>Type</TableCell>
+              <TableCell>Quantity</TableCell>
+              <TableCell>Price</TableCell>
+              <TableCell>Total</TableCell>
             </TableRow>
-          </TableHeader>
+          </TableHead>
           <TableBody>
             {trades.map(trade => (
               <TableRow key={trade.id}>
@@ -36,13 +35,9 @@ export function TradeHistory({ trades }: TradeHistoryProps) {
                 <TableCell>{trade.symbol}</TableCell>
                 <TableCell>
                   <Badge
-                    className={cn(
-                      trade.type === 'BUY' ? 'bg-bull-500' : 'bg-bear-500',
-                      'text-white'
-                    )}
-                  >
-                    {trade.type}
-                  </Badge>
+                    variant={trade.tradeType === 'BUY' ? 'default' : 'destructive'}
+                    label={trade.tradeType}
+                  />
                 </TableCell>
                 <TableCell>{trade.quantity}</TableCell>
                 <TableCell>₹{trade.price.toLocaleString('en-IN')}</TableCell>

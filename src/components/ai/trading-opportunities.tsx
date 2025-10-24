@@ -1,5 +1,6 @@
 import type { TradingSuggestion, RiskTolerance } from '@/app/types'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader} from '@/components/ui/card'
+import Typography from '@mui/material/Typography'
 import { Button } from '@/components/ui/button'
 
 interface TradingOpportunitiesProps {
@@ -12,7 +13,7 @@ export function TradingOpportunities({ suggestions, budget, riskTolerance }: Tra
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Trading Opportunities</CardTitle>
+        <Typography variant='h6'>Trading Opportunities</Typography>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
@@ -27,7 +28,7 @@ export function TradingOpportunities({ suggestions, budget, riskTolerance }: Tra
                   <p className="font-semibold">{suggestion.symbol}</p>
                   <p className="text-sm">{suggestion.action} @ ₹{suggestion.price.toLocaleString('en-IN')}</p>
                 </div>
-                <Button size="sm">Trade</Button>
+                <Button size="small">Trade</Button>
               </li>
             ))}
           </ul>

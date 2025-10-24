@@ -1,5 +1,6 @@
 import type { MarketSentiment } from '@/types'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader} from '@/components/ui/card'
+import Typography from '@mui/material/Typography'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
@@ -23,10 +24,11 @@ export function MarketSentimentCard({ sentiment }: MarketSentimentCardProps) {
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle>Market Sentiment</CardTitle>
-          <Badge className={cn(getSentimentClass(sentiment.sentiment), 'text-white')}>
-            {sentiment.sentiment}
-          </Badge>
+          <Typography variant='h6'>Market Sentiment</Typography>
+          <Badge 
+            className={cn(getSentimentClass(sentiment.sentiment), 'text-white')}
+            label={sentiment.sentiment}
+          />
         </div>
       </CardHeader>
       <CardContent>
@@ -35,7 +37,11 @@ export function MarketSentimentCard({ sentiment }: MarketSentimentCardProps) {
           <h4 className="font-semibold mb-2">Key Factors:</h4>
           <div className="flex flex-wrap gap-2">
             {sentiment.factors.map((factor, index) => (
-              <Badge key={index} variant="outline">{factor}</Badge>
+              <Badge 
+                key={index} 
+                variant="outline"
+                label={factor}
+              />
             ))}
           </div>
         </div>

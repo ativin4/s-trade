@@ -1,16 +1,17 @@
 'use client'
 
 import { useState } from 'react'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
+import { TextField } from '@/components/ui/input'
 import { useForm } from 'react-hook-form'
 import type { BrokerName } from '@/types'
+import { Typography } from '@mui/material'
 
 interface AddBrokerDialogProps {
   brokerName?: BrokerName
-  children: React.ReactNode
+  children: React.ReactElement
 }
 
 type AddBrokerFormValues = {
@@ -28,30 +29,31 @@ export function AddBrokerDialog({ brokerName, children }: AddBrokerDialogProps) 
     setOpen(false)
   }
 
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Connect to {brokerName}</DialogTitle>
-          <DialogDescription>
-            Enter your API credentials to connect your {brokerName} account.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div>
-            <Label htmlFor="apiKey">API Key</Label>
-            <Input id="apiKey" type="text" {...register('apiKey')} />
-            {errors.apiKey && <p className="text-sm text-red-500 mt-1">{errors.apiKey.message}</p>}
-          </div>
-          <div>
-            <Label htmlFor="apiSecret">API Secret</Label>
-            <Input id="apiSecret" type="password" {...register('apiSecret')} />
-            {errors.apiSecret && <p className="text-sm text-red-500 mt-1">{errors.apiSecret.message}</p>}
-          </div>
-          <Button type="submit">Connect</Button>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <>
+      <Button onClick={() => setOpen(true)}>Connect to {brokerName}</Button>
+      <Dialog open={open} onClose={() => setOpen(false)}>
+        <DialogContent className="sm:max-w-[425px]">
+            <DialogTitle>Connect to {brokerName}</DialogTitle>
+            <Typography variant="body2" className="mb-4">
+              Enter your API credentials to connect your {brokerName} account.
+            </Typography>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div>
+              <Label htmlFor="apiKey">API Key</Label>
+              <TextField id="apiKey" type="text" {...register('apiKey')} />
+              {errors.apiKey && <p className="text-sm text-red-500 mt-1">{errors.apiKey.message}</p>}
+            </div>
+            <div>
+              <Label htmlFor="apiSecret">API Secret</Label>
+              <TextField id="apiSecret" type="password" {...register('apiSecret')} />
+              {errors.apiSecret && <p className="text-sm text-red-500 mt-1">{errors.apiSecret.message}</p>}
+            </div>
+            <Button type="submit">Connect</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

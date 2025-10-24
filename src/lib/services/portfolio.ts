@@ -2,6 +2,7 @@
 import type { BrokerAccount, PortfolioHolding } from '@/app/types'
 
 import { getMcpPortfolio } from '@/lib/mcp'
+import type { AIRecommendation } from '@/types'
 
 export async function getBrokerPortfolios(
   accounts: BrokerAccount[]
@@ -25,7 +26,7 @@ export async function getBrokerPortfolios(
         marketValue: 28500,
         gainLoss: 500,
         gainLossPercent: 1.78,
-        aiRecommendation: 'HOLD',
+        aiRecommendation: 'HOLD' as AIRecommendation,
         confidence: 0.7,
         insight: 'Reliance is expected to perform well in the coming weeks.',
         brokerAccountId: account.id,
@@ -41,7 +42,7 @@ export async function getBrokerPortfolios(
         marketValue: 77000,
         gainLoss: 1000,
         gainLossPercent: 1.31,
-        aiRecommendation: 'BUY',
+        aiRecommendation: 'BUY' as AIRecommendation,
         confidence: 0.8,
         insight: 'TCS is showing strong buy signals.',
         brokerAccountId: account.id,

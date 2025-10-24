@@ -1,11 +1,11 @@
-
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Plus, Trash2 } from 'lucide-react'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { TextField } from '@/components/ui/input'
+import { IconButton, Typography } from '@mui/material'
+import AddIcon from '@mui/icons-material/Add'
+import DeleteIcon from '@mui/icons-material/Delete'
 
 interface WatchlistProps {
   userId: string
@@ -55,18 +55,18 @@ export function Watchlist({ userId }: WatchlistProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Watchlist</CardTitle>
+        <Typography variant='h6'>Watchlist</Typography>
       </CardHeader>
       <CardContent>
         <div className="flex items-center space-x-2 mb-4">
-          <Input
+          <TextField
             placeholder="Add symbol"
             value={newSymbol}
             onChange={(e) => setNewSymbol(e.target.value)}
           />
-          <Button onClick={addSymbol} size="icon">
-            <Plus className="h-4 w-4" />
-          </Button>
+          <IconButton onClick={addSymbol}>
+            <AddIcon />
+          </IconButton>
         </div>
         <ul className="space-y-2">
           {watchlist.map(item => (
@@ -83,9 +83,9 @@ export function Watchlist({ userId }: WatchlistProps) {
                   {item.changePercent.toFixed(2)}%
                 </p>
               </div>
-              <Button variant="ghost" size="icon" onClick={() => removeSymbol(item.id)}>
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              <IconButton size="small" onClick={() => removeSymbol(item.id)}>
+                <DeleteIcon fontSize="small" />
+              </IconButton>
             </li>
           ))}
         </ul>

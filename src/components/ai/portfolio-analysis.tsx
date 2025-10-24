@@ -1,5 +1,6 @@
 import type { PortfolioHolding, AIAnalysisResponse, TradingPlan } from '@/types'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader} from '@/components/ui/card'
+import Typography from '@mui/material/Typography'
 
 interface PortfolioAnalysisProps {
   holdings: PortfolioHolding[]
@@ -11,7 +12,7 @@ export function PortfolioAnalysis({ holdings, analyses, tradingPlan }: Portfolio
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Portfolio Analysis</CardTitle>
+        <Typography variant='h6'>Portfolio Analysis</Typography>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">

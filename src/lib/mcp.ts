@@ -1,5 +1,5 @@
 import { ExternalAPIError } from "@/app/types";
-import { BrokerAccount, PortfolioHolding } from "@/app/types";
+import type { BrokerAccount, PortfolioHolding } from "@/app/types";
 
 const MCP_SERVER_URL = process.env.NEXT_PUBLIC_MCP_SERVER_URL;
 
@@ -32,7 +32,7 @@ export async function getMcpPortfolio(
       throw error;
     }
     throw new ExternalAPIError(
-      `Failed to fetch portfolio from MCP server: ${error.message}`,
+      `Failed to fetch portfolio from MCP server: ${(error as Error).message}`,
       account.brokerName
     );
   }

@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import Typography from '@mui/material/Typography'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { TextField } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useForm } from 'react-hook-form'
 import type { BrokerAccount } from '@/types'
@@ -37,18 +37,18 @@ export function QuickTrade({ brokerAccounts }: QuickTradeProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Quick Trade</CardTitle>
+        <Typography variant='h6'>Quick Trade</Typography>
       </CardHeader>
       <CardContent>
         <form className="space-y-4">
           <div>
             <Label htmlFor="quick-symbol">Symbol</Label>
-            <Input id="quick-symbol" {...register('symbol')} />
+            <TextField id="quick-symbol" {...register('symbol')} />
             {errors.symbol && <p className="text-sm text-red-500 mt-1">{errors.symbol.message}</p>}
           </div>
           <div>
             <Label htmlFor="quick-quantity">Quantity</Label>
-            <Input id="quick-quantity" type="number" {...register('quantity', { valueAsNumber: true })} />
+            <TextField id="quick-quantity" type="number" {...register('quantity', { valueAsNumber: true })} />
             {errors.quantity && <p className="text-sm text-red-500 mt-1">{errors.quantity.message}</p>}
           </div>
           <div className="grid grid-cols-2 gap-4">

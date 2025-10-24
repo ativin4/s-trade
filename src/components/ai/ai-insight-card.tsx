@@ -1,8 +1,8 @@
 import type { AIAnalysisResponse } from '@/types'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader} from '@/components/ui/card'
+import Typography from '@mui/material/Typography'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { cn } from '@/lib/utils'
 
 interface AIInsightCardProps {
   analysis: AIAnalysisResponse
@@ -28,18 +28,16 @@ export function AIInsightCard({ analysis, onAccept, onReject }: AIInsightCardPro
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle>{analysis.symbol}</CardTitle>
-          <Badge className={cn(getRecommendationClass(analysis.recommendation), 'text-white')}>
-            {analysis.recommendation.replace('_', ' ')}
-          </Badge>
+          <Typography variant='h6'>{analysis.symbol}</Typography>
+          <Badge sx={{ backgroundColor: getRecommendationClass(analysis.recommendation) }} color="primary" label={analysis.recommendation.replace('_', ' ')} />
         </div>
-        <CardDescription>Confidence: {analysis.confidence}%</CardDescription>
+        <Typography variant='body2'>Confidence: {analysis.confidence}%</Typography>
       </CardHeader>
       <CardContent>
         <p className="text-sm text-muted-foreground mb-4">{analysis.reasoning}</p>
         <div className="flex justify-end space-x-2">
-          <Button variant="outline" size="sm" onClick={onReject}>Reject</Button>
-          <Button size="sm" onClick={onAccept}>Accept</Button>
+          <Button variant="outlined" size="small" onClick={onReject}>Reject</Button>
+          <Button size="small" onClick={onAccept}>Accept</Button>
         </div>
       </CardContent>
     </Card>

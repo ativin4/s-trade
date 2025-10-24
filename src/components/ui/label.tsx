@@ -1,12 +1,9 @@
-import * as React from 'react';
+import { FormLabel } from "@mui/material";
+import type { FormLabelProps } from "@mui/material";
+import React from "react";
 
-export interface LabelProps extends React.LabelHTMLAttributes<HTMLLabelElement> {
-  children: React.ReactNode;
-  className?: string;
-}
+const Label: React.FC<FormLabelProps> = (props) => {
+  return <FormLabel {...props} />;
+};
 
-export const Label: React.FC<LabelProps> = ({ children, className = '', ...props }) => (
-  <label className={`block text-sm font-medium text-gray-700 ${className}`} {...props}>
-    {children}
-  </label>
-);
+export { Label };

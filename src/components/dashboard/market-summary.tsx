@@ -1,5 +1,6 @@
 import type { MarketData } from '@/app/types'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader} from '@/components/ui/card'
+import Typography from '@mui/material/Typography'
 import { cn } from '@/lib/utils'
 
 interface MarketSummaryProps {
@@ -12,7 +13,7 @@ export function MarketSummary({ marketData }: MarketSummaryProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Market Summary</CardTitle>
+          <Typography variant='h6'>Market Summary</Typography>
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">Market data is currently unavailable.</p>
@@ -24,7 +25,7 @@ export function MarketSummary({ marketData }: MarketSummaryProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Market Summary</CardTitle>
+        <Typography variant='h6'>Market Summary</Typography>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-2 gap-4">

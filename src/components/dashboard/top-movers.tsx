@@ -1,15 +1,15 @@
-import { getTopGainersAndLosers } from '@/lib/services/market'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { cn } from '@/lib/utils'
+import { Card, CardContent, CardHeader} from '@/components/ui/card'
+import type { StockData } from '@/types'
+import Typography from '@mui/material/Typography'
 
 export async function TopMovers() {
   // Mock data since the service is not implemented
-  const { gainers, losers } = { gainers: [], losers: [] } // await getTopGainersAndLosers()
+  const { gainers, losers }: { gainers: StockData[], losers: StockData[] } = { gainers: [], losers: [] } // await getTopGainersAndLosers()
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Top Movers</CardTitle>
+        <Typography variant='h6'>Top Movers</Typography>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -23,7 +23,7 @@ export async function TopMovers() {
                     <p className="text-sm text-muted-foreground">{stock.name}</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold">₹{stock.price.toLocaleString('en-IN')}</p>
+                    <p className="font-semibold">₹{stock.currentPrice.toLocaleString('en-IN')}</p>
                     <p className="text-sm text-bull-500">+{stock.change.toLocaleString('en-IN')} ({stock.changePercent.toFixed(2)}%)</p>
                   </div>
                 </li>
@@ -40,7 +40,7 @@ export async function TopMovers() {
                     <p className="text-sm text-muted-foreground">{stock.name}</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold">₹{stock.price.toLocaleString('en-IN')}</p>
+                    <p className="font-semibold">₹{stock.currentPrice.toLocaleString('en-IN')}</p>
                     <p className="text-sm text-bear-500">{stock.change.toLocaleString('en-IN')} ({stock.changePercent.toFixed(2)}%)</p>
                   </div>
                 </li>

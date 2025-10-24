@@ -1,9 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { Input } from '@/components/ui/input'
+import { TextField } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Search } from 'lucide-react'
+import SearchIcon from '@mui/icons-material/Search'
 
 export function StockSearch() {
   const [symbol, setSymbol] = useState('')
@@ -15,15 +15,14 @@ export function StockSearch() {
 
   return (
     <div className="flex w-full max-w-sm items-center space-x-2">
-      <Input
+      <TextField
         type="text"
         placeholder="Enter stock symbol (e.g., RELIANCE.NS)"
         value={symbol}
         onChange={(e) => setSymbol(e.target.value.toUpperCase())}
         onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
       />
-      <Button type="submit" onClick={handleSearch}>
-        <Search className="h-4 w-4 mr-2" />
+      <Button type="submit" onClick={handleSearch} startIcon={<SearchIcon />}>
         Search
       </Button>
     </div>

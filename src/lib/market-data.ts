@@ -1,6 +1,7 @@
-import { ExternalAPIError, MarketData } from "@/app/types";
+import { ExternalAPIError, type MarketData } from "@/app/types";
 
 const UPSTOX_API_URL = "/api/proxy/stock-data";
+const KITE_API_URL = "/api/proxy/stock-data";
 
 export async function getKiteMarketData(): Promise<MarketData> {
   try {
@@ -20,7 +21,7 @@ export async function getKiteMarketData(): Promise<MarketData> {
       throw error;
     }
     throw new ExternalAPIError(
-      `Failed to fetch market data from Kite: ${error.message}`,
+      `Failed to fetch market data from Kite: ${(error as Error).message}`,
       "zerodha"
     );
   }
@@ -44,7 +45,7 @@ export async function getUpstoxMarketData(): Promise<MarketData> {
       throw error;
     }
     throw new ExternalAPIError(
-      `Failed to fetch market data from Upstox: ${error.message}`,
+      `Failed to fetch market data from Upstox: ${(error as Error).message}`,
       "groww" // Assuming upstox is used for groww
     );
   }

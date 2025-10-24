@@ -1,12 +1,12 @@
-
 'use client'
 
 import { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import Typography from '@mui/material/Typography'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { TextField } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Select, SelectItem } from '@/components/ui/select'
 import { useForm } from 'react-hook-form'
 import type { BrokerAccount, UserSettings } from '@/types'
 
@@ -26,7 +26,7 @@ type TradingFormValues = {
 
 export function TradingPanel({ brokerAccounts, userSettings }: TradingPanelProps) {
   const [transactionType, setTransactionType] = useState('BUY')
-  const { register, handleSubmit, formState: { errors } } = useForm<TradingFormValues>({
+  const { register, handleSubmit, formState: { errors }, watch } = useForm<TradingFormValues>({
     defaultValues: {
       orderType: 'MARKET',
       transactionType: 'BUY',
@@ -41,24 +41,22 @@ export function TradingPanel({ brokerAccounts, userSettings }: TradingPanelProps
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Trading Panel</CardTitle>
+        <Typography variant='h6'>Trading Panel</Typography>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <Button
               type="button"
-              variant={transactionType === 'BUY' ? 'default' : 'outline'}
+              variant={transactionType === 'BUY' ? 'contained' : 'outlined'}
               onClick={() => setTransactionType('BUY')}
-              className="bg-bull-500 hover:bg-bull-600 text-white"
             >
               Buy
             </Button>
             <Button
               type="button"
-              variant={transactionType === 'SELL' ? 'default' : 'outline'}
+              variant={transactionType === 'SELL' ? 'contained' : 'outlined'}
               onClick={() => setTransactionType('SELL')}
-              className="bg-bear-500 hover:bg-bear-600 text-white"
             >
               Sell
             </Button>
@@ -66,53 +64,41 @@ export function TradingPanel({ brokerAccounts, userSettings }: TradingPanelProps
 
           <div>
             <Label htmlFor="broker">Broker</Label>
-            <Select {...register('broker')}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a broker" />
-              </SelectTrigger>
-              <SelectContent>
+            <Select id="broker" {...register('broker')}>
                 {brokerAccounts.map(account => (
                   <SelectItem key={account.id} value={account.id}>
                     {account.brokerName}
                   </SelectItem>
                 ))}
-              </SelectContent>
             </Select>
             {errors.broker && <p className="text-sm text-red-500 mt-1">{errors.broker.message}</p>}
           </div>
 
           <div>
             <Label htmlFor="symbol">Symbol</Label>
-            <Input id="symbol" {...register('symbol')} />
+            <TextField id="symbol" {...register('symbol')} />
             {errors.symbol && <p className="text-sm text-red-500 mt-1">{errors.symbol.message}</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="quantity">Quantity</Label>
-              <Input id="quantity" type="number" {...register('quantity', { valueAsNumber: true })} />
+              <TextField id="quantity" type="number" {...register('quantity', { valueAsNumber: true })} />
               {errors.quantity && <p className="text-sm text-red-500 mt-1">{errors.quantity.message}</p>}
             </div>
             <div>
               <Label htmlFor="orderType">Order Type</Label>
-              <Select {...register('orderType')}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select order type" />
-                </SelectTrigger>
-                <SelectContent>
+              <Select id="orderType" {...register('orderType')}>
                   <SelectItem value="MARKET">Market</SelectItem>
                   <SelectItem value="LIMIT">Limit</SelectItem>
-                </SelectContent>
               </Select>
             </div>
           </div>
 
-          {/* Show price input only for LIMIT orders */}
-          {/* @ts-ignore */}
           {watch('orderType') === 'LIMIT' && (
             <div>
               <Label htmlFor="price">Price</Label>
-              <Input id="price" type="number" step="0.01" {...register('price', { valueAsNumber: true })} />
+              <TextField id="price" type="number" {...register('price', { valueAsNumber: true })} />
               {errors.price && <p className="text-sm text-red-500 mt-1">{errors.price.message}</p>}
             </div>
           )}

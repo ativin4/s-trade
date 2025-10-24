@@ -8,7 +8,7 @@ import type {
   AIAnalysisRequest, 
   AIAnalysisResponse, 
 } from '@/types'
-import { mapPrismaSettingsToApp } from '@/lib/user'
+import { mapPrismaToAppSettings } from '@/lib/user'
 
 
 export async function POST(request: NextRequest): Promise<NextResponse<APIResponse<AIAnalysisResponse>>> {
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<APIRespon
       const prismaSettings = await prisma.userSettings.findUnique({
         where: { userId: session.user.id }
       });
-      userSettings = mapPrismaSettingsToApp(prismaSettings);
+      userSettings = mapPrismaToAppSettings(prismaSettings);
     }
 
     // Prepare AI analysis request
@@ -169,7 +169,7 @@ export async function PUT(request: NextRequest): Promise<NextResponse<APIRespons
       const prismaSettings = await prisma.userSettings.findUnique({
         where: { userId: session.user.id }
       });
-      userSettings = mapPrismaSettingsToApp(prismaSettings);
+      userSettings = mapPrismaToAppSettings(prismaSettings);
     }
 
     const geminiService = new GeminiAIService();

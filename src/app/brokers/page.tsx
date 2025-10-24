@@ -2,13 +2,17 @@ import { prisma } from '@/lib/auth'
 import { BrokerConnectionCard } from '@/components/brokers/broker-connection-card'
 import { PortfolioSyncStatus } from '@/components/brokers/portfolio-sync-status'
 import { AddBrokerDialog } from '@/components/brokers/add-broker-dialog'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import Typography from '@mui/material/Typography'
 import { Button } from '@/components/ui/button'
-import { Plus, AlertCircle, CheckCircle, XCircle } from 'lucide-react'
+import AddIcon from '@mui/icons-material/Add';
+import InfoIcon from '@mui/icons-material/Info';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CancelIcon from '@mui/icons-material/Cancel';
 import { PageWrapper } from '@/components/layout/page-wrapper'
 import { PageHeader } from '@/components/layout/page-header'
 import type { BrokerAccount, BrokerName } from '@/types'
-import { mapPrismaBrokerAccountToApp } from '@/lib/broker'
+import { mapPrismaToAppAccount } from '@/lib/broker'
 
 
 export default async function BrokersPage() {
@@ -19,8 +23,7 @@ export default async function BrokersPage() {
         description="Manage your trading account connections and portfolio sync"
       >
         <AddBrokerDialog>
-          <Button>
-            <Plus className="w-4 h-4 mr-2" />
+          <Button startIcon={<AddIcon />}>
             Connect Broker
           </Button>
         </AddBrokerDialog>
@@ -42,7 +45,7 @@ async function BrokersContent() {
     where: { userId },
   })
 
-  const brokerAccounts = prismaAccounts.map(mapPrismaBrokerAccountToApp);
+  const brokerAccounts = prismaAccounts.map(mapPrismaToAppAccount);
 
   const supportedBrokers: Array<{
     name: BrokerName
@@ -114,16 +117,16 @@ async function BrokersContent() {
                     <div className="flex items-center gap-3">
                       <span className="text-2xl">{broker.logo}</span>
                       <div>
-                        <CardTitle className="text-lg">{broker.displayName}</CardTitle>
+                        <Typography variant='h6'>{broker.displayName}</Typography>
                         <div className="flex items-center gap-2 mt-1">
                           {isConnected ? (
                             <div className="flex items-center gap-1 text-green-600">
-                              <CheckCircle className="w-3 h-3" />
+                              <CheckCircleIcon sx={{ width: 12, height: 12 }} />
                               <span className="text-xs font-medium">Connected</span>
                             </div>
                           ) : (
                             <div className="flex items-center gap-1 text-gray-400">
-                              <XCircle className="w-3 h-3" />
+                              <CancelIcon sx={{ width: 12, height: 12 }} />
                               <span className="text-xs">Not connected</span>
                             </div>
                           )}
@@ -141,9 +144,9 @@ async function BrokersContent() {
                       </div>
                     </div>
                   </div>
-                  <CardDescription className="text-sm">
+                  <Typography variant='body2'>
                     {broker.description}
-                  </CardDescription>
+                  </Typography>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
@@ -164,12 +167,12 @@ async function BrokersContent() {
                     {broker.status === 'available' && (
                       <div className="pt-2">
                         {isConnected ? (
-                          <Button variant="outline" size="sm" className="w-full">
+                          <Button variant="outlined" size="small" className="w-full">
                             Manage Connection
                           </Button>
                         ) : (
                           <AddBrokerDialog brokerName={broker.name}>
-                            <Button size="sm" className="w-full">
+                            <Button size="small" className="w-full">
                               Connect {broker.displayName}
                             </Button>
                           </AddBrokerDialog>
@@ -178,7 +181,7 @@ async function BrokersContent() {
                     )}
 
                     {broker.status === 'coming_soon' && (
-                      <Button variant="outline" size="sm" className="w-full" disabled>
+                      <Button variant="outlined" size="small" className="w-full" disabled>
                         Coming Soon
                       </Button>
                     )}
@@ -194,10 +197,10 @@ async function BrokersContent() {
       <Card className="bg-blue-50 border-blue-200">
         <CardHeader>
           <div className="flex items-center gap-2">
-            <AlertCircle className="w-5 h-5 text-blue-600" />
-            <CardTitle className="text-lg text-blue-900">
+            <InfoIcon className="text-blue-600" />
+            <Typography variant="h6" className="text-blue-900">
               Need Help Connecting?
-            </CardTitle>
+            </Typography>
           </div>
         </CardHeader>
         <CardContent>

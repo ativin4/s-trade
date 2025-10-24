@@ -49,14 +49,16 @@ const nextConfig: NextConfig = {
     ]
   },
   async rewrites() {
+    // Not recommended: For a production app, use environment variables
+    // instead of hardcoding URLs.
     return [
       {
         source: '/api/proxy/stock-data/:path*',
-        destination: `${process.env.UPSTOX_API_URL}/:path*`,
+        destination: 'https://api.upstox.com/v2/:path*',
       },
       {
         source: '/api/proxy/market-data/:path*',
-        destination: `${process.env.KITE_API_URL}/:path*`,
+        destination: 'https://api.kite.trade/:path*',
       },
     ]
   },

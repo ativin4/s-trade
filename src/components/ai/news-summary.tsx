@@ -1,4 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader} from '@/components/ui/card'
+import Typography from '@mui/material/Typography'
 import { Badge } from '@/components/ui/badge'
 
 interface NewsSummaryProps {
@@ -14,7 +15,7 @@ export function NewsSummary({ summary }: NewsSummaryProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>AI News Summary</CardTitle>
+          <Typography variant='h6'>AI News Summary</Typography>
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">No news summary available.</p>
@@ -26,7 +27,7 @@ export function NewsSummary({ summary }: NewsSummaryProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>AI News Summary</CardTitle>
+        <Typography variant='h6'>AI News Summary</Typography>
       </CardHeader>
       <CardContent>
         <p className="text-muted-foreground mb-4">{summary.summary}</p>
@@ -42,7 +43,7 @@ export function NewsSummary({ summary }: NewsSummaryProps) {
           <h4 className="font-medium">Mentioned Stocks</h4>
           <div className="flex flex-wrap gap-2 mt-2">
             {summary.mentionedStocks.map((stock, index) => (
-              <Badge key={index} variant="secondary">{stock}</Badge>
+              <Badge key={index} variant="secondary" label={stock} />
             ))}
           </div>
         </div>

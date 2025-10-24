@@ -2,7 +2,7 @@ import type { NextAuthOptions } from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
 import GithubProvider from 'next-auth/providers/github'
 import { PrismaAdapter } from '@next-auth/prisma-adapter'
-import { PrismaClient } from '@/app/generated/prisma-client'
+import { PrismaClient } from "@prisma/client";
 import { withAccelerate } from '@prisma/extension-accelerate'
 
 type Env = {
@@ -23,10 +23,11 @@ const env: Env = {
   NEXTAUTH_URL: process.env.NEXTAUTH_URL!,
 };
 
-export const prisma = new PrismaClient().$extends(withAccelerate())
+const prismaClient = new PrismaClient()
+export const prisma = prismaClient.$extends(withAccelerate())
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
+  adapter: PrismaAdapter(prismaClient),
   providers: [
     GoogleProvider({
       clientId: env.GOOGLE_CLIENT_ID,

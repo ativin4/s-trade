@@ -14,8 +14,8 @@ import { PageWrapper } from '@/components/layout/page-wrapper'
 import { DashboardSkeleton } from '@/components/dashboard/dashboard-skeleton'
 import { TopMovers } from '@/components/dashboard/top-movers'
 import { RecentActivity } from '@/app/dashboard/recent-activity'
-import type { BrokerAccount } from 'types-global'
-import { mapPrismaSettingsToApp } from '@/lib/user'
+import type { BrokerAccount } from '@/types'
+import { mapPrismaToAppSettings } from '@/lib/user'
 
 async function getUserData(userId: string) {
   const user = await prisma.user.findUnique({
@@ -33,7 +33,7 @@ async function getUserData(userId: string) {
 
   return {
     user,
-    appSettings: mapPrismaSettingsToApp(appSettings),
+    appSettings: mapPrismaToAppSettings(appSettings),
   };
 }
 

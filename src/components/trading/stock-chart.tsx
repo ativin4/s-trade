@@ -12,7 +12,8 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader} from '@/components/ui/card'
+import Typography from '@mui/material/Typography'
 
 ChartJS.register(
   CategoryScale,
@@ -69,7 +70,7 @@ export function StockChart({ symbol, height = 400 }: StockChartProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{symbol} Chart</CardTitle>
+        <Typography variant='h6'>{symbol} Chart</Typography>
       </CardHeader>
       <CardContent style={{ height }}>
         <Line data={data} options={options} />

@@ -1,36 +1,19 @@
-import * as React from 'react';
+import {
+  Select as MuiSelect,
+  MenuItem as MuiMenuItem,
+} from "@mui/material";
+import type { SelectProps, MenuItemProps } from "@mui/material";
+import React from "react";
 
-export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
-  children: React.ReactNode;
-}
+const Select: React.FC<SelectProps> = (props) => <MuiSelect {...props} />;
+const SelectItem: React.FC<MenuItemProps> = (props) => <MuiMenuItem {...props} />;
 
-export const Select: React.FC<SelectProps> = ({ children, ...props }) => (
-  <select {...props} className="block w-full border border-gray-300 rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:border-indigo-500">
-    {children}
-  </select>
-);
+// The following components are not directly equivalent in MUI,
+// but are exported for compatibility.
+// The developer will need to refactor the usage.
+const SelectTrigger: React.FC<{ children: React.ReactNode }> = ({ children }) => <>{children}</>;
+const SelectValue: React.FC<{ placeholder?: string }> = ({ placeholder }) => <>{placeholder}</>;
+const SelectContent: React.FC<{ children: React.ReactNode }> = ({ children }) => <>{children}</>;
 
-export interface SelectTriggerProps {
-  children: React.ReactNode;
-}
-export const SelectTrigger: React.FC<SelectTriggerProps> = ({ children }) => <>{children}</>;
 
-export interface SelectValueProps {
-  placeholder?: string;
-}
-export const SelectValue: React.FC<SelectValueProps> = ({ placeholder }) => (
-  <span className="text-gray-500">{placeholder}</span>
-);
-
-export interface SelectContentProps {
-  children: React.ReactNode;
-}
-export const SelectContent: React.FC<SelectContentProps> = ({ children }) => <>{children}</>;
-
-export interface SelectItemProps extends React.OptionHTMLAttributes<HTMLOptionElement> {
-  value: string;
-  children: React.ReactNode;
-}
-export const SelectItem: React.FC<SelectItemProps> = ({ value, children, ...props }) => (
-  <option value={value} {...props}>{children}</option>
-);
+export { Select, SelectItem, SelectTrigger, SelectValue, SelectContent };

@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { AIAnalysisResponse, UserSettings } from "@/app/types";
+import type { AIAnalysisResponse, UserSettings } from "@/app/types";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 

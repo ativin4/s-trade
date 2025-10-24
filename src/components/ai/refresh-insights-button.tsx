@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import { RefreshCw } from 'lucide-react'
+import Refresh from '@mui/icons-material/Refresh'
 import { useState } from 'react'
 
 export function RefreshInsightsButton() {
@@ -16,7 +16,7 @@ export function RefreshInsightsButton() {
 
   return (
     <Button onClick={handleClick} disabled={isRefreshing}>
-      <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+      <Refresh className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
       {isRefreshing ? 'Refreshing...' : 'Refresh Insights'}
     </Button>
   )

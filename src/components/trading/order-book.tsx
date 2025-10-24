@@ -2,7 +2,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader} from '@/components/ui/card'
+import Typography from '@mui/material/Typography'
 
 interface OrderBookProps {
   symbol: string
@@ -40,7 +41,7 @@ export function OrderBook({ symbol }: OrderBookProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Order Book</CardTitle>
+        <Typography variant='h6'>Order Book</Typography>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-2 gap-4 text-sm">

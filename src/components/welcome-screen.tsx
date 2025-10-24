@@ -4,24 +4,22 @@ import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
-import { 
-  TrendingUp, 
-  Brain, 
-  Shield, 
-  Smartphone, 
-  BarChart3, 
-  Zap,
-  ArrowRight,
-  Github,
-  Chrome
-} from 'lucide-react'
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import PsychologyIcon from '@mui/icons-material/Psychology';
+import ShieldIcon from '@mui/icons-material/Shield';
+import SmartphoneIcon from '@mui/icons-material/Smartphone';
+import BarChartIcon from '@mui/icons-material/BarChart';
+import OfflineBoltIcon from '@mui/icons-material/OfflineBolt';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import GitHubIcon from '@mui/icons-material/GitHub';
+import GoogleIcon from '@mui/icons-material/Google';
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 
 import { type ClientSafeProvider } from 'next-auth/react'
 
 interface WelcomeScreenProps {
-  providers?: Record<string, ClientSafeProvider>
+  providers?: ClientSafeProvider[]
 }
 
 export function WelcomeScreen({ providers }: WelcomeScreenProps) {
@@ -40,32 +38,32 @@ export function WelcomeScreen({ providers }: WelcomeScreenProps) {
 
   const features = [
     {
-      icon: <Brain className="w-6 h-6" />,
+      icon: <PsychologyIcon />,
       title: 'AI-Powered Analysis',
       description: 'Advanced AI algorithms analyze market trends and provide intelligent trading recommendations'
     },
     {
-      icon: <TrendingUp className="w-6 h-6" />,
+      icon: <TrendingUpIcon />,
       title: 'Multi-Broker Integration',
       description: 'Connect with 5paisa, Zerodha, and Groww for unified portfolio management'
     },
     {
-      icon: <Shield className="w-6 h-6" />,
+      icon: <ShieldIcon />,
       title: 'Risk Management',
       description: 'Built-in risk controls and automated stop-loss mechanisms to protect your capital'
     },
     {
-      icon: <Smartphone className="w-6 h-6" />,
+      icon: <SmartphoneIcon />,
       title: 'Progressive Web App',
       description: 'Works offline and installs like a native app on any device'
     },
     {
-      icon: <BarChart3 className="w-6 h-6" />,
+      icon: <BarChartIcon />,
       title: 'Real-time Analytics',
       description: 'Live market data and portfolio performance tracking with detailed insights'
     },
     {
-      icon: <Zap className="w-6 h-6" />,
+      icon: <OfflineBoltIcon />,
       title: 'Automated Trading',
       description: 'Set up swing trading automation based on AI recommendations'
     }
@@ -84,7 +82,7 @@ export function WelcomeScreen({ providers }: WelcomeScreenProps) {
               transition={{ duration: 0.6 }}
             >
               <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-full px-4 py-2 mb-6">
-                <TrendingUp className="w-4 h-4 text-blue-400" />
+                <TrendingUpIcon fontSize="small" className="text-blue-400" />
                 <span className="text-blue-300 text-sm font-medium">AI-Powered Trading Platform</span>
               </div>
               
@@ -106,14 +104,14 @@ export function WelcomeScreen({ providers }: WelcomeScreenProps) {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12"
             >
-              {providers && Object.values(providers).map((provider) => (
+              {providers && providers.map((provider) => (
                 <Button
                   key={provider.name}
-                  size="lg"
+                  size="large"
                   onClick={() => handleSignIn(provider.id)}
                   disabled={isSigningIn === provider.id}
                   className={`${provider.id === 'google' ? 'bg-white text-gray-900 hover:bg-gray-100' : 'border-gray-600 text-white hover:bg-gray-800'} font-semibold px-8 py-3 rounded-full transition-all duration-200 shadow-lg hover:shadow-xl`}
-                  variant={provider.id === 'google' ? 'default' : 'outline'}
+                  variant='outlined'
                 >
                   {isSigningIn === provider.id ? (
                     <div className="flex items-center gap-2">
@@ -122,10 +120,10 @@ export function WelcomeScreen({ providers }: WelcomeScreenProps) {
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">
-                      {provider.id === 'google' && <Chrome className="w-5 h-5" />}
-                      {provider.id === 'github' && <Github className="w-5 h-5" />}
+                      {provider.id === 'google' && <GoogleIcon fontSize="small" />}
+                      {provider.id === 'github' && <GitHubIcon fontSize="small" />}
                       Continue with {provider.name}
-                      {provider.id === 'google' && <ArrowRight className="w-4 h-4" />}
+                      {provider.id === 'google' && <ArrowForwardIcon fontSize="small" />}
                     </div>
                   )}
                 </Button>
@@ -140,15 +138,15 @@ export function WelcomeScreen({ providers }: WelcomeScreenProps) {
               className="flex flex-wrap justify-center items-center gap-8 text-gray-400 text-sm"
             >
               <div className="flex items-center gap-2">
-                <Shield className="w-4 h-4" />
+                <ShieldIcon fontSize="small" />
                 <span>SEBI Compliant</span>
               </div>
               <div className="flex items-center gap-2">
-                <Brain className="w-4 h-4" />
+                <PsychologyIcon fontSize="small" />
                 <span>AI-Powered</span>
               </div>
               <div className="flex items-center gap-2">
-                <Zap className="w-4 h-4" />
+                <OfflineBoltIcon fontSize="small" />
                 <span>Real-time Data</span>
               </div>
             </motion.div>

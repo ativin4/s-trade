@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import Typography from '@mui/material/Typography'
 
 export function DashboardSkeleton() {
   return (

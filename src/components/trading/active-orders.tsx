@@ -1,12 +1,12 @@
-
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Card, CardContent, CardHeader} from '@/components/ui/card'
+import Typography from '@mui/material/Typography'
+import { Table, TableBody, TableCell, TableHead, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { X } from 'lucide-react'
+import { IconButton } from '@mui/material'
+import CloseIcon from '@mui/icons-material/Close'
 import type { Order } from '@/types'
 
 interface ActiveOrdersProps {
@@ -52,34 +52,32 @@ export function ActiveOrders({ userId }: ActiveOrdersProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Active Orders</CardTitle>
+        <Typography variant='h6'>Active Orders</Typography>
       </CardHeader>
       <CardContent>
         <Table>
-          <TableHeader>
+          <TableHead>
             <TableRow>
-              <TableHead>Symbol</TableHead>
-              <TableHead>Side</TableHead>
-              <TableHead>Quantity</TableHead>
-              <TableHead>Price</TableHead>
-              <TableHead></TableHead>
+              <TableCell>Symbol</TableCell>
+              <TableCell>Side</TableCell>
+              <TableCell>Quantity</TableCell>
+              <TableCell>Price</TableCell>
+              <TableCell></TableCell>
             </TableRow>
-          </TableHeader>
+          </TableHead>
           <TableBody>
             {orders.map(order => (
               <TableRow key={order.id}>
                 <TableCell>{order.symbol}</TableCell>
                 <TableCell>
-                  <Badge variant={order.side === 'BUY' ? 'default' : 'destructive'}>
-                    {order.side}
-                  </Badge>
+                  <Badge variant={order.side === 'BUY' ? 'default' : 'destructive'} label={order.side} />
                 </TableCell>
                 <TableCell>{order.quantity}</TableCell>
                 <TableCell>₹{order.price.toLocaleString('en-IN')}</TableCell>
                 <TableCell>
-                  <Button variant="ghost" size="icon" onClick={() => cancelOrder(order.id)}>
-                    <X className="h-4 w-4" />
-                  </Button>
+                  <IconButton size="small" onClick={() => cancelOrder(order.id)}>
+                    <CloseIcon fontSize="small" />
+                  </IconButton>
                 </TableCell>
               </TableRow>
             ))}

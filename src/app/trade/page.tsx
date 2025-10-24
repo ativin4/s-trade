@@ -5,19 +5,13 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { PageHeader } from '@/components/layout/page-header'
 import { PageWrapper } from '@/components/layout/page-wrapper'
-import { StockSearch } from '@/components/trading/stock-search'
-import { TradingPanel } from '@/components/trading/trading-panel'
-import { OrderBook } from '@/components/trading/order-book'
-import { StockChart } from '@/components/trading/stock-chart'
-import { TradeHistory } from '@/components/trading/trade-history'
 import { Watchlist } from '@/components/trading/watchlist'
 import { QuickTrade } from '@/components/trading/quick-trade'
-import { MarketDepth } from '@/components/trading/market-depth'
 import { ActiveOrders } from '@/components/trading/active-orders'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import Typography from '@mui/material/Typography'
 import { Badge } from '@/components/ui/badge'
-import { TrendingUp, TrendingDown, Search, BarChart3, Clock, Target } from 'lucide-react'
+import { TradeClient } from './trade-client'
 import type { BrokerAccount, Trade, UserSettings } from '@/types'
 
 export default async function TradePage() {
@@ -79,7 +73,7 @@ async function TradingContent({ userId }: TradingContentProps) {
       <div className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Account Summary</CardTitle>
+            <Typography variant='h6'>Account Summary</Typography>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
@@ -113,82 +107,7 @@ async function TradingContent({ userId }: TradingContentProps) {
         <Watchlist userId={userId} />
       </div>
 
-      <div className="lg:col-span-3">
-        <Tabs defaultValue="search" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="search">
-              <Search className="w-4 h-4 mr-2" />
-              Search & Trade
-            </TabsTrigger>
-            <TabsTrigger value="chart">
-              <BarChart3 className="w-4 h-4 mr-2" />
-              Charts
-            </TabsTrigger>
-            <TabsTrigger value="orders">
-              <Target className="w-4 h-4 mr-2" />
-              Order Book
-            </TabsTrigger>
-            <TabsTrigger value="history">
-              <Clock className="w-4 h-4 mr-2" />
-              History
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="search" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Search Stocks</CardTitle>
-                <CardDescription>
-                  Search for stocks and view real-time prices
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <StockSearch />
-              </CardContent>
-            </Card>
-
-            <TradingPanel
-              brokerAccounts={brokerAccounts as BrokerAccount[]}
-              userSettings={user.settings}
-            />
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Market Movers</CardTitle>
-                <CardDescription>Top gainers and losers today</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <MarketMovers gainers={gainers} losers={losers} />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="chart" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Stock Chart</CardTitle>
-                <CardDescription>
-                  Interactive price charts with technical indicators
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <StockChart symbol="RELIANCE.NS" height={400} />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="orders" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <OrderBook symbol="RELIANCE.NS" />
-              <MarketDepth symbol="RELIANCE.NS" />
-            </div>
-          </TabsContent>
-
-          <TabsContent value="history" className="space-y-6">
-            <TradeHistory trades={recentTrades as (Trade & { brokerAccount: { brokerName: string } })[]} />
-          </TabsContent>
-        </Tabs>
-      </div>
+      <TradeClient userId={userId} user={user} brokerAccounts={brokerAccounts} recentTrades={recentTrades as (Trade & { brokerAccount: { brokerName: string } })[]} gainers={gainers} losers={losers} />
     </div>
   )
 }
@@ -205,61 +124,7 @@ function MarketStatusBadge() {
   const isMarketOpen = currentTime >= marketOpen && currentTime <= marketClose
 
   return (
-    <Badge variant={isMarketOpen ? 'default' : 'secondary'} className="gap-1">
-      <div className={`w-2 h-2 rounded-full ${isMarketOpen ? 'bg-bull-500' : 'bg-muted-foreground'}`} />
-      Market {isMarketOpen ? 'Open' : 'Closed'}
-    </Badge>
-  )
-}
-
-function MarketMovers({ gainers, losers }: {
-  gainers: Array<{ symbol: string; name: string; price: number; change: number; changePercent: number }>
-  losers: Array<{ symbol: string; name: string; price: number; change: number; changePercent: number }>
-}) {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div>
-        <h3 className="font-medium text-bull-500 mb-3 flex items-center gap-2">
-          <TrendingUp className="w-4 h-4" />
-          Top Gainers
-        </h3>
-        <div className="space-y-2">
-          {gainers.map(stock => (
-            <div key={stock.symbol} className="flex items-center justify-between p-2 bg-bull-500/10 rounded">
-              <div>
-                <p className="font-medium text-sm">{stock.symbol}</p>
-                <p className="text-xs text-muted-foreground truncate">{stock.name}</p>
-              </div>
-              <div className="text-right">
-                <p className="font-medium">₹{stock.price}</p>
-                <p className="text-sm text-bull-500">+{stock.changePercent}%</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <h3 className="font-medium text-bear-500 mb-3 flex items-center gap-2">
-          <TrendingDown className="w-4 h-4" />
-          Top Losers
-        </h3>
-        <div className="space-y-2">
-          {losers.map(stock => (
-            <div key={stock.symbol} className="flex items-center justify-between p-2 bg-bear-500/10 rounded">
-              <div>
-                <p className="font-medium text-sm">{stock.symbol}</p>
-                <p className="text-xs text-muted-foreground truncate">{stock.name}</p>
-              </div>
-              <div className="text-right">
-                <p className="font-medium">₹{stock.price}</p>
-                <p className="text-sm text-bear-500">{stock.changePercent}%</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
+    <Badge variant={isMarketOpen ? 'default' : 'secondary'} label={isMarketOpen ? 'Market Open' : 'Market Closed'} />
   )
 }
 
