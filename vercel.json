@@ -1,15 +1,5 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/next"
-    }
-  ],
-
-  "env": {
-    "NODE_ENV": "production"
-  },
   "build": {
     "env": {
       "NEXT_TELEMETRY_DISABLED": "1"
@@ -53,12 +43,6 @@
           "value": "strict-origin-when-cross-origin"
         }
       ]
-    }
-  ],
-  "rewrites": [
-    {
-      "source": "/manifest.json",
-      "destination": "/api/manifest"
     }
   ]
 }
