@@ -177,15 +177,23 @@ export function WelcomeScreen({ providers }: WelcomeScreenProps) {
               transition={{ duration: 0.6, delay: index * 0.1 }}
               viewport={{ once: true }}
             >
-              <Card className="bg-slate-800/50 border-slate-700 hover:border-slate-600 transition-all duration-200 h-full">
-                <CardContent className="p-6">
+              <Card
+                sx={{
+                  backgroundColor: 'rgba(30,41,59,0.5)',
+                  border: '1px solid rgb(51,65,85)',
+                  height: '100%',
+                  '&:hover': { borderColor: 'rgb(71,85,105)' },
+                  transition: 'border-color 0.2s',
+                }}
+              >
+                <CardContent sx={{ p: 3 }}>
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
+                    <div className="p-2 rounded-lg" style={{ background: 'rgba(59,130,246,0.1)', color: '#60a5fa' }}>
                       {feature.icon}
                     </div>
                     <h3 className="font-semibold text-white">{feature.title}</h3>
                   </div>
-                  <p className="text-gray-400 text-sm leading-relaxed">
+                  <p className="text-sm leading-relaxed" style={{ color: '#9ca3af' }}>
                     {feature.description}
                   </p>
                 </CardContent>

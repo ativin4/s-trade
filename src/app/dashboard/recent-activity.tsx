@@ -1,63 +1,45 @@
 import { prisma } from '@/lib/auth'
-
-interface RecentTrade {
-  id: string;
-  tradeType: string;
-  symbol: string;
-  quantity: number;
-  price: number;
-  createdAt: Date;
-  brokerAccount: {
-    brokerName: string;
-  };
-}
+import { cn } from '@/lib/utils'
+import { fmtINR, fmtDate } from '@/lib/format'
 
 export async function RecentActivity({ userId }: { userId: string }) {
-  const recentTrades = await prisma.trade.findMany({
+  const trades = await prisma.trade.findMany({
     where: { userId },
     orderBy: { createdAt: 'desc' },
     take: 10,
-    include: {
-      brokerAccount: {
-        select: { brokerName: true }
-      }
-    }
+    include: { brokerAccount: { select: { brokerName: true } } },
   })
 
-  if (recentTrades.length === 0) {
+  if (trades.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500">
-        <p>No recent trading activity</p>
-        <p className="text-sm mt-1">Your trades will appear here once you start trading</p>
+      <div className="py-6 text-center">
+        <p className="text-sm text-slate-600">No trades yet</p>
+        <p className="text-xs text-slate-700 mt-1">Your executed orders will appear here</p>
       </div>
     )
   }
 
   return (
-    <div className="space-y-3">
-      {recentTrades.map((trade: RecentTrade) => (
-        <div
-          key={trade.id}
-          className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0"
-        >
-          <div className="flex items-center space-x-3">
-            <div className={`w-2 h-2 rounded-full ${
-              trade.tradeType === 'BUY' ? 'bg-green-500' : 'bg-red-500'
-            }`} />
+    <div className="divide-y divide-slate-800/50">
+      {trades.map(t => (
+        <div key={t.id} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+          <div className="flex items-center gap-3">
+            <span className={cn(
+              'text-[10px] font-bold px-1.5 py-0.5 rounded border',
+              t.tradeType === 'BUY'
+                ? 'text-emerald-400 bg-emerald-950/40 border-emerald-800/50'
+                : 'text-red-400 bg-red-950/40 border-red-800/50'
+            )}>
+              {t.tradeType}
+            </span>
             <div>
-              <p className="font-medium text-gray-900">{trade.symbol}</p>
-              <p className="text-sm text-gray-600">
-                {trade.tradeType} {trade.quantity} shares @ ₹{trade.price}
-              </p>
+              <p className="text-sm font-semibold text-white">{t.symbol}</p>
+              <p className="text-xs text-slate-500">{t.quantity} × {fmtINR(t.price)}</p>
             </div>
           </div>
           <div className="text-right">
-            <p className="text-sm font-medium text-gray-900">
-              {trade.brokerAccount.brokerName}
-            </p>
-            <p className="text-xs text-gray-500">
-              {new Date(trade.createdAt).toLocaleDateString()}
-            </p>
+            <p className="text-xs font-medium text-slate-400 capitalize">{t.brokerAccount.brokerName}</p>
+            <p className="text-[11px] text-slate-600">{fmtDate(t.createdAt)}</p>
           </div>
         </div>
       ))}

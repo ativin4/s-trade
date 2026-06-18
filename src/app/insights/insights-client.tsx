@@ -3,192 +3,123 @@
 import { useState } from 'react'
 import { Tabs, Tab, TabPanel } from '@/components/ui/tabs'
 import { AIInsightCard } from '@/components/ai/ai-insight-card'
-import { MarketSentimentCard } from '@/components/ai/market-sentiment-card'
 import { PortfolioAnalysis } from '@/components/ai/portfolio-analysis'
 import { TradingOpportunities } from '@/components/ai/trading-opportunities'
 import { NewsSummary } from '@/components/ai/news-summary'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import Typography from '@mui/material/Typography'
-import { Badge } from '@/components/ui/badge'
-import PsychologyIcon from '@mui/icons-material/Psychology';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import WarningIcon from '@mui/icons-material/Warning';
-import TrackChangesIcon from '@mui/icons-material/TrackChanges';
 import type { AIAnalysisResponse, PortfolioHolding, NewsItem, UserSettings } from '@/app/types'
 
 interface InsightsClientProps {
-  validAnalyses: AIAnalysisResponse[];
-  marketSentiment: {
-    sentiment: 'BULLISH' | 'BEARISH' | 'NEUTRAL';
-    confidence: number;
-    factors: string[];
-    reasoning: string;
-  };
-  portfolioHoldings: PortfolioHolding[];
-  user: {
-    id: string;
-    name: string;
-    settings: UserSettings;
-  };
-  newsSummary: {
-    summary: string;
-    keyPoints: string[];
-    mentionedStocks: string[];
-  };
-  news: NewsItem[];
+  validAnalyses: AIAnalysisResponse[]
+  portfolioHoldings: PortfolioHolding[]
+  user: { id: string; name: string; settings: UserSettings }
+  newsSummary: { summary: string; keyPoints: string[]; mentionedStocks: string[] }
+  news: NewsItem[]
 }
 
-export function InsightsClient({ validAnalyses, marketSentiment, portfolioHoldings, user, newsSummary, news }: InsightsClientProps) {
-    const [value, setValue] = useState(0);
+const REC_COLOR: Record<string, string> = {
+  BUY:        'text-emerald-400',
+  STRONG_BUY: 'text-emerald-300',
+  SELL:       'text-red-400',
+  STRONG_SELL:'text-red-300',
+  HOLD:       'text-slate-400',
+}
 
-    const handleChange = (event: React.SyntheticEvent, newValue: number) => {
-        setValue(newValue);
-    };
+export function InsightsClient({ validAnalyses, portfolioHoldings, user, newsSummary, news }: InsightsClientProps) {
+  const [tab, setTab] = useState(0)
 
-    return (
+  const buys  = validAnalyses.filter(a => a.recommendation === 'BUY' || a.recommendation === 'STRONG_BUY').length
+  const sells = validAnalyses.filter(a => a.recommendation === 'SELL' || a.recommendation === 'STRONG_SELL').length
+  const avgConf = validAnalyses.length
+    ? Math.round(validAnalyses.reduce((s, a) => s + a.confidence, 0) / validAnalyses.length)
+    : 0
+
+  return (
+    <div className="space-y-6">
+      <Tabs value={tab} onChange={(_, v) => setTab(v)} aria-label="insights tabs">
+        <Tab label="Overview" />
+        <Tab label="Portfolio Analysis" />
+        <Tab label="Opportunities" />
+        <Tab label="News" />
+      </Tabs>
+
+      <TabPanel value={tab} index={0}>
         <div className="space-y-6">
-            <Tabs value={value} onChange={handleChange} aria-label="insights tabs">
-                <Tab label="Overview" />
-                <Tab label="Portfolio Analysis" />
-                <Tab label="Opportunities" />
-                <Tab label="Market Sentiment" />
-                <Tab label="News" />
-            </Tabs>
-            <TabPanel value={value} index={0}>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <Card>
-                        <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm text-muted-foreground">Total Insights</p>
-                                    <p className="text-2xl font-bold">{validAnalyses.length}</p>
-                                </div>
-                                <PsychologyIcon className="w-8 h-8 text-primary" />
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm text-muted-foreground">Buy Signals</p>
-                                    <p className="text-2xl font-bold text-bull-500">
-                                        {validAnalyses.filter((a: AIAnalysisResponse) => a.recommendation === 'BUY' || a.recommendation === 'STRONG_BUY').length}
-                                    </p>
-                                </div>
-                                <TrendingUpIcon className="w-8 h-8 text-bull-500" />
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm text-muted-foreground">Sell Signals</p>
-                                    <p className="text-2xl font-bold text-bear-500">
-                                        {validAnalyses.filter((a: AIAnalysisResponse) => a.recommendation === 'SELL' || a.recommendation === 'STRONG_SELL').length}
-                                    </p>
-                                </div>
-                                <WarningIcon className="w-8 h-8 text-bear-500" />
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm text-muted-foreground">Avg Confidence</p>
-                                    <p className="text-2xl font-bold">
-                                        {validAnalyses.length > 0
-                                            ? Math.round(validAnalyses.reduce((sum: number, a: AIAnalysisResponse) => sum + a.confidence, 0) / validAnalyses.length)
-                                            : 0}%
-                                    </p>
-                                </div>
-                                <TrackChangesIcon className="w-8 h-8 text-primary" />
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-                <div>
-                    <h2 className="text-xl font-semibold mb-4">Latest AI Insights</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {validAnalyses.slice(0, 6).map((analysis: AIAnalysisResponse) => (
-                            <AIInsightCard
-                                key={analysis.symbol}
-                                analysis={analysis}
-                                onAccept={() => console.log('Accepted recommendation for', analysis.symbol)}
-                                onReject={() => console.log('Rejected recommendation for', analysis.symbol)}
-                            />
-                        ))}
-                    </div>
-                </div>
-                <MarketSentimentCard sentiment={marketSentiment} />
-            </TabPanel>
-            <TabPanel value={value} index={1}>
-                <PortfolioAnalysis
-                    holdings={portfolioHoldings}
-                    analyses={validAnalyses}
-                    tradingPlan={null}
-                />
-            </TabPanel>
-            <TabPanel value={value} index={2}>
-                <TradingOpportunities
-                    suggestions={[]}
-                    budget={user.settings?.maxBudgetPerTrade || 50000}
-                    riskTolerance={user.settings?.riskTolerance as 'CONSERVATIVE' | 'MODERATE' | 'AGGRESSIVE' || 'MODERATE'}
-                />
-            </TabPanel>
-            <TabPanel value={value} index={3}>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <MarketSentimentCard sentiment={marketSentiment} />
-                    <Card>
-                        <CardHeader>
-                            <Typography variant='h6'>Market Analysis</Typography>
-                            <Typography variant='body2'>
-                                Current market conditions and key factors
-                            </Typography>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-4">
-                                <div>
-                                    <h4 className="font-medium mb-2">Key Factors</h4>
-                                    <div className="flex flex-wrap gap-2">
-                                        {marketSentiment.factors.map((factor: string, index: number) => (
-                                            <Badge key={index} variant="outline" label={factor} />
-                                        ))}
-                                    </div>
-                                </div>
-                                <div>
-                                    <h4 className="font-medium mb-2">Analysis</h4>
-                                    <p className="text-sm text-muted-foreground">
-                                        {marketSentiment.reasoning}
-                                    </p>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-            </TabPanel>
-            <TabPanel value={value} index={4}>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <NewsSummary summary={newsSummary} />
-                    <Card>
-                        <CardHeader>
-                            <Typography variant='h6'>Latest News</Typography>
-                        </CardHeader>
-                        <CardContent>
-                            <ul className="space-y-4">
-                                {news.map((item: NewsItem, index: number) => (
-                                    <li key={index}>
-                                        <a href={item.url} target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline">{item.title}</a>
-                                        <p className="text-sm text-muted-foreground">{item.source}</p>
-                                    </li>
-                                ))}
-                            </ul>
-                        </CardContent>
-                    </Card>
-                </div>
-            </TabPanel>
+          {/* Stat cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { label: 'Total Insights', value: validAnalyses.length, color: 'text-white' },
+              { label: 'Buy Signals',    value: buys,                 color: 'text-emerald-400' },
+              { label: 'Sell Signals',   value: sells,                color: 'text-red-400' },
+              { label: 'Avg Confidence', value: `${avgConf}%`,        color: 'text-blue-400' },
+            ].map(s => (
+              <div key={s.label} className="bg-[#0f1117] border border-slate-800 rounded-xl px-5 py-4">
+                <p className="text-[11px] font-semibold text-slate-600 uppercase tracking-widest mb-1">{s.label}</p>
+                <p className={`text-2xl font-bold tabular-nums ${s.color}`}>{s.value}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Insight cards */}
+          <div>
+            <p className="text-xs font-bold text-slate-600 uppercase tracking-widest mb-4">Latest AI Insights</p>
+            {validAnalyses.length === 0 ? (
+              <div className="bg-[#0f1117] border border-slate-800 rounded-xl px-5 py-10 text-center">
+                <p className="text-slate-600 text-sm">No insights yet</p>
+                <p className="text-slate-700 text-xs mt-1">Add holdings to your portfolio to generate insights</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {validAnalyses.slice(0, 6).map(a => (
+                  <AIInsightCard
+                    key={a.symbol}
+                    analysis={a}
+                    onAccept={() => {}}
+                    onReject={() => {}}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-    )
+      </TabPanel>
+
+      <TabPanel value={tab} index={1}>
+        <PortfolioAnalysis holdings={portfolioHoldings} analyses={validAnalyses} />
+      </TabPanel>
+
+      <TabPanel value={tab} index={2}>
+        <TradingOpportunities
+          suggestions={[]}
+          budget={user.settings?.maxBudgetPerTrade || 50000}
+          riskTolerance={(user.settings?.riskTolerance as 'CONSERVATIVE' | 'MODERATE' | 'AGGRESSIVE') || 'MODERATE'}
+        />
+      </TabPanel>
+
+      <TabPanel value={tab} index={3}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <NewsSummary summary={newsSummary} />
+          <div className="bg-[#0f1117] border border-slate-800 rounded-xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-800">
+              <p className="text-xs font-bold text-white uppercase tracking-widest">Latest News</p>
+            </div>
+            <ul className="divide-y divide-slate-800/50">
+              {news.map((item, i) => (
+                <li key={i} className="px-5 py-3">
+                  <a
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors"
+                  >
+                    {item.title}
+                  </a>
+                  <p className="text-[11px] text-slate-600 mt-0.5">{item.source}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </TabPanel>
+    </div>
+  )
 }

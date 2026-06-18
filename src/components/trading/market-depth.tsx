@@ -1,86 +1,136 @@
-
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader} from '@/components/ui/card'
-import Typography from '@mui/material/Typography'
+import { cn } from '@/lib/utils'
+import type { DepthResponse, DepthLevel } from '@/app/api/market/depth/route'
 
-interface MarketDepthProps {
+interface Props {
   symbol: string
+  exchange?: string
 }
 
-interface MarketDepthData {
-  bids: { price: number; orders: number; quantity: number }[]
-  asks: { price: number; orders: number; quantity: number }[]
-}
-
-export function MarketDepth({ symbol }: MarketDepthProps) {
-  const [data, setData] = useState<MarketDepthData | null>(null)
+export function MarketDepth({ symbol, exchange = 'NSE' }: Props) {
+  const [depth, setDepth]     = useState<DepthResponse | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // TODO: Fetch real market depth data
-    const mockData: MarketDepthData = {
-      bids: [
-        { price: 2850.5, orders: 10, quantity: 100 },
-        { price: 2850.0, orders: 15, quantity: 200 },
-        { price: 2849.5, orders: 12, quantity: 150 },
-        { price: 2849.0, orders: 20, quantity: 300 },
-        { price: 2848.5, orders: 18, quantity: 250 },
-      ],
-      asks: [
-        { price: 2851.0, orders: 11, quantity: 120 },
-        { price: 2851.5, orders: 14, quantity: 180 },
-        { price: 2852.0, orders: 16, quantity: 220 },
-        { price: 2852.5, orders: 9, quantity: 130 },
-        { price: 2853.0, orders: 13, quantity: 170 },
-      ],
+    if (!symbol) return
+    let cancelled = false
+
+    const refresh = async () => {
+      if (cancelled || document.hidden) return
+      try {
+        const res = await fetch(`/api/market/depth?symbol=${encodeURIComponent(symbol)}&exchange=${exchange}`)
+        if (!res.ok || cancelled) return
+        setDepth(await res.json())
+      } catch { /* silent */ }
+      finally { if (!cancelled) setLoading(false) }
     }
-    setData(mockData)
-  }, [symbol])
+
+    setLoading(true)
+    setDepth(null)
+    refresh()
+    const id = setInterval(refresh, 2500)
+    document.addEventListener('visibilitychange', refresh)
+    return () => {
+      cancelled = true
+      clearInterval(id)
+      document.removeEventListener('visibilitychange', refresh)
+    }
+  }, [symbol, exchange])
+
+  if (loading) {
+    return (
+      <div className="py-6 text-center text-[11px] text-slate-600 animate-pulse">
+        Loading depth…
+      </div>
+    )
+  }
+
+  if (!depth?.available) {
+    return (
+      <div className="py-6 text-center space-y-1">
+        <p className="text-[12px] text-slate-500">Order book unavailable</p>
+        <p className="text-[10px] text-slate-700">Connect Groww for live depth</p>
+      </div>
+    )
+  }
+
+  const buyBook  = depth.buyBook.slice(0, 5)
+  const sellBook = depth.sellBook.slice(0, 5)
+  const allQtys  = [...buyBook, ...sellBook].map(l => l.qty)
+  const maxQty   = Math.max(...allQtys, 1)
+  const totalBuy  = buyBook.reduce((s, l) => s + l.qty, 0)
+  const totalSell = sellBook.reduce((s, l) => s + l.qty, 0)
 
   return (
-    <Card>
-      <CardHeader>
-        <Typography variant='h6'>Market Depth</Typography>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <h3 className="font-semibold text-bull-500 mb-2">Bids</h3>
-            <div className="space-y-1">
-              <div className="flex justify-between font-semibold">
-                <span>Orders</span>
-                <span>Quantity</span>
-                <span>Price</span>
-              </div>
-              {data?.bids.map((bid, i) => (
-                <div key={i} className="flex justify-between">
-                  <span>{bid.orders}</span>
-                  <span>{bid.quantity}</span>
-                  <span className="text-bull-500">{bid.price.toFixed(2)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div>
-            <h3 className="font-semibold text-bear-500 mb-2">Asks</h3>
-            <div className="space-y-1">
-              <div className="flex justify-between font-semibold">
-                <span>Price</span>
-                <span>Quantity</span>
-                <span>Orders</span>
-              </div>
-              {data?.asks.map((ask, i) => (
-                <div key={i} className="flex justify-between">
-                  <span className="text-bear-500">{ask.price.toFixed(2)}</span>
-                  <span>{ask.quantity}</span>
-                  <span>{ask.orders}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="text-[11px] select-none">
+      {/* Column header */}
+      <div className="grid grid-cols-[1fr_auto_1fr] text-[9px] text-slate-600 uppercase tracking-wider px-2 py-1.5 border-b border-slate-800">
+        <span>Qty</span>
+        <span className="text-center px-3">Price | Price</span>
+        <span className="text-right">Qty</span>
+      </div>
+
+      {/* 5 levels */}
+      {Array.from({ length: 5 }).map((_, i) => {
+        const buy  = buyBook[i]
+        const sell = sellBook[i]
+        return (
+          <DepthRow key={i} buy={buy} sell={sell} maxQty={maxQty} />
+        )
+      })}
+
+      {/* Totals + spread */}
+      <div className="grid grid-cols-3 px-2 py-1.5 border-t border-slate-800 mt-0.5">
+        <span className="text-emerald-400 tabular-nums font-semibold">{totalBuy.toLocaleString()}</span>
+        <span className="text-center text-slate-600 text-[10px]">
+          {depth.spread != null ? `±${depth.spread.toFixed(2)}` : '—'}
+        </span>
+        <span className="text-right text-red-400 tabular-nums font-semibold">{totalSell.toLocaleString()}</span>
+      </div>
+    </div>
+  )
+}
+
+function DepthRow({ buy, sell, maxQty }: { buy?: DepthLevel; sell?: DepthLevel; maxQty: number }) {
+  const buyPct  = buy  ? (buy.qty  / maxQty) * 100 : 0
+  const sellPct = sell ? (sell.qty / maxQty) * 100 : 0
+
+  return (
+    <div className="grid grid-cols-[1fr_auto_1fr] items-center px-2 py-[3px] hover:bg-slate-800/20 transition-colors">
+      {/* Buy qty + bar */}
+      <div className="relative flex items-center">
+        <div
+          className="absolute inset-y-0 right-0 bg-emerald-900/25 rounded-sm"
+          style={{ width: `${buyPct}%` }}
+        />
+        <span className={cn('relative tabular-nums', buy ? 'text-emerald-400' : 'text-slate-700')}>
+          {buy ? buy.qty.toLocaleString() : '—'}
+        </span>
+      </div>
+
+      {/* Prices */}
+      <div className="flex items-center gap-1 px-2 tabular-nums text-[10px] whitespace-nowrap">
+        <span className={buy ? 'text-emerald-400/80' : 'text-slate-700'}>
+          {buy ? buy.price.toFixed(2) : '—'}
+        </span>
+        <span className="text-slate-700">|</span>
+        <span className={sell ? 'text-red-400/80' : 'text-slate-700'}>
+          {sell ? sell.price.toFixed(2) : '—'}
+        </span>
+      </div>
+
+      {/* Sell qty + bar */}
+      <div className="relative flex items-center justify-end">
+        <div
+          className="absolute inset-y-0 left-0 bg-red-900/25 rounded-sm"
+          style={{ width: `${sellPct}%` }}
+        />
+        <span className={cn('relative tabular-nums', sell ? 'text-red-400' : 'text-slate-700')}>
+          {sell ? sell.qty.toLocaleString() : '—'}
+        </span>
+      </div>
+    </div>
   )
 }

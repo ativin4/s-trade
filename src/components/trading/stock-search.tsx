@@ -5,25 +5,29 @@ import { TextField } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import SearchIcon from '@mui/icons-material/Search'
 
-export function StockSearch() {
+interface StockSearchProps {
+  onSelect?: (symbol: string) => void
+}
+
+export function StockSearch({ onSelect }: StockSearchProps) {
   const [symbol, setSymbol] = useState('')
 
   const handleSearch = () => {
-    // TODO: Implement search logic
-    console.log('Searching for:', symbol)
+    const s = symbol.trim().toUpperCase().replace('.NS', '').replace('.BO', '')
+    if (s) onSelect?.(s)
   }
 
   return (
     <div className="flex w-full max-w-sm items-center space-x-2">
       <TextField
         type="text"
-        placeholder="Enter stock symbol (e.g., RELIANCE.NS)"
+        placeholder="RELIANCE, TCS, HDFCBANK…"
         value={symbol}
         onChange={(e) => setSymbol(e.target.value.toUpperCase())}
         onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
       />
-      <Button type="submit" onClick={handleSearch} startIcon={<SearchIcon />}>
-        Search
+      <Button type="button" onClick={handleSearch} startIcon={<SearchIcon />}>
+        Load Chart
       </Button>
     </div>
   )

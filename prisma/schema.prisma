@@ -93,12 +93,20 @@ model AIAnalysis {
 }
 
 model BrokerAccount {
-  id          String  @id @default(cuid())
-  userId      String
-  user        User    @relation(fields: [userId], references: [id])
-  brokerName  String
-  isActive    Boolean @default(true)
-  trades      Trade[]
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  brokerName    String
+  isActive         Boolean   @default(true)
+  isAdapterActive  Boolean   @default(false)
+  trades        Trade[]
+  clientCode    String?
+  apiSecret     String?
+  totpSecret    String?
+  jwtToken      String?
+  feedToken     String?
+  refreshToken  String?
+  extraCredentials String? @db.Text
 }
 
 model Trade {

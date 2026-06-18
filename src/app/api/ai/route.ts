@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions, prisma } from '@/lib/auth'
 import { GeminiAIService } from '@/lib/services/gemini'
-import { AuthenticationError, ExternalAPIError } from '@/types'
+import { AuthenticationError, ExternalAPIError } from '@/app/types'
 import type { 
   APIResponse, 
   AIAnalysisRequest, 
   AIAnalysisResponse, 
-} from '@/types'
+} from '@/app/types'
 import { mapPrismaToAppSettings } from '@/lib/user'
 
 
@@ -143,126 +143,5 @@ export async function POST(request: NextRequest): Promise<NextResponse<APIRespon
       message: 'An unexpected error occurred',
       timestamp: new Date()
     }, { status: 500 });
-  }
-}
-
-// Bulk analysis endpoint
-type BulkAnalyzeRequest = {
-  symbols: string[];
-  includeUserPreferences?: boolean;
-};
-
-export async function PUT(request: NextRequest): Promise<NextResponse<APIResponse<AIAnalysisResponse[]>>> {
-  try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
-      throw new AuthenticationError()
-    }
-
-    const body: BulkAnalyzeRequest = await request.json();
-    const symbols = Array.isArray(body.symbols) ? body.symbols.slice(0, 20) : [];
-    const includeUserPreferences = body.includeUserPreferences ?? true;
-
-    // Get user settings
-    let userSettings = null;
-    if (includeUserPreferences) {
-      const prismaSettings = await prisma.userSettings.findUnique({
-        where: { userId: session.user.id }
-      });
-      userSettings = mapPrismaToAppSettings(prismaSettings);
-    }
-
-    const geminiService = new GeminiAIService();
-    const analyses: AIAnalysisResponse[] = [];
-
-    // Process symbols in batches to avoid rate limits
-    const batchSize = 5;
-    for (let i = 0; i < symbols.length; i += batchSize) {
-      const batch = symbols.slice(i, i + batchSize);
-      const batchPromises = batch.map(async (symbol) => {
-        try {
-          // Get basic stock data for analysis
-          const stockData = await getStockData(symbol);
-          const analysis = await geminiService.analyzeStock({
-            symbol,
-            currentPrice: stockData.currentPrice,
-            historicalData: stockData.historicalData,
-            newsData: stockData.newsData,
-            technicalIndicators: stockData.technicalIndicators,
-            userSettings: userSettings || undefined
-          });
-          return analysis;
-        } catch (error) {
-          console.error(`Error analyzing ${symbol}:`, error);
-          return null;
-        }
-      });
-      const batchResults = await Promise.all(batchPromises);
-      analyses.push(...batchResults.filter(Boolean) as AIAnalysisResponse[]);
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: analyses,
-      message: `Analyzed ${analyses.length} stocks successfully`,
-      timestamp: new Date()
-    });
-
-  } catch (error) {
-    console.error('Bulk analysis error:', error);
-    return NextResponse.json({
-      success: false,
-      error: 'INTERNAL_SERVER_ERROR',
-      message: 'Failed to perform bulk analysis',
-      timestamp: new Date()
-    });
-  }
-}
-
-import { getKiteMarketData } from '@/lib/market-data'
-
-// Helper function to get stock data
-async function getStockData(symbol: string) {
-  const marketData = await getKiteMarketData();
-  // This is a simplified implementation. In a real app, you would need to
-  // fetch the specific stock data from the market data provider.
-  const stockData = (marketData as any)[symbol];
-  if (!stockData) {
-    throw new Error(`Stock data not found for symbol: ${symbol}`);
-  }
-  return {
-    currentPrice: stockData.value,
-    historicalData: [
-      {
-        timestamp: new Date(),
-        open: stockData.low,
-        high: stockData.high,
-        low: stockData.low,
-        close: stockData.value,
-        volume: stockData.volume
-      }
-    ],
-    newsData: [],
-    technicalIndicators: {
-      sma20: 100,
-      sma50: 105,
-      ema20: 99,
-      rsi: 45,
-      macd: {
-        macd: 0.5,
-        signal: 0.3,
-        histogram: 0.2
-      },
-      bollinger: {
-        upper: 105,
-        middle: 100,
-        lower: 95
-      },
-      volume: {
-        avg: 900000,
-        current: 1000000,
-        ratio: 1.11
-      }
-    }
   }
 }

@@ -2,24 +2,35 @@ import { Suspense, type ReactNode } from 'react'
 import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { AuthShell } from './auth-shell'
 
 interface PageWrapperProps {
   children: ReactNode
   fallback?: ReactNode
+  /** Set to true when the parent already renders AuthShell (e.g. dashboard) */
+  bare?: boolean
 }
 
-export async function PageWrapper({ children, fallback }: PageWrapperProps) {
+export async function PageWrapper({ children, fallback, bare }: PageWrapperProps) {
   const session = await getServerSession(authOptions)
 
   if (!session?.user?.email) {
-    redirect('/auth/signin')
+    redirect('/')
   }
 
-  return (
-    <div className="container mx-auto p-6 space-y-6">
+  if (bare) {
+    return (
       <Suspense fallback={fallback}>
         {children}
       </Suspense>
-    </div>
+    )
+  }
+
+  return (
+    <AuthShell>
+      <Suspense fallback={fallback}>
+        {children}
+      </Suspense>
+    </AuthShell>
   )
 }

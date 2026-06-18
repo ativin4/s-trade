@@ -1,63 +1,21 @@
 import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { authOptions, prisma } from '@/lib/auth'
 import { GeminiAIService } from '@/lib/services/gemini'
 import { PageHeader } from '@/components/layout/page-header'
 import { PageWrapper } from '@/components/layout/page-wrapper'
 import { InsightsClient } from './insights-client'
-import type { AIAnalysisResponse, BrokerAccount, PortfolioHolding, MarketData, NewsItem, TechnicalIndicators, UserSettings } from '@/app/types'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import Typography from '@mui/material/Typography'
+import { getBrokerPortfolios } from '@/lib/services/portfolio'
+import { fetchMarketNews } from '@/lib/services/news'
+import { mapPrismaToAppAccount } from '@/lib/broker'
+import { mapPrismaToAppSettings } from '@/lib/user'
+import type { AIAnalysisResponse, PortfolioHolding, TechnicalIndicators } from '@/app/types'
+import { Card, CardContent } from '@/components/ui/card'
 
 export default async function InsightsPage() {
   const session = await getServerSession(authOptions)
-
-  if (!session?.user?.id) {
-    redirect('/auth/signin')
-  }
-
-  const mockSettings: UserSettings = {
-    id: 'settings-id',
-    userId: session.user.id,
-    riskTolerance: 'MODERATE',
-    maxBudgetPerTrade: 50000,
-    preferredMarketCap: 'LARGE_CAP',
-    autoTradingEnabled: false,
-    excludedSectors: [],
-    otpMethod: 'EMAIL',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-
-  // Mock data for now
-  const [user, brokerAccounts, portfolioHoldings, marketData, news] = await Promise.all([
-    Promise.resolve({
-      id: session.user.id,
-      name: 'Test User',
-      settings: mockSettings,
-    }),
-    Promise.resolve([] as BrokerAccount[]),
-    Promise.resolve([] as PortfolioHolding[]),
-    Promise.resolve({} as MarketData),
-    Promise.resolve([] as NewsItem[]),
-  ])
-  const aiService = new GeminiAIService()
-  const marketSentiment = await aiService.getMarketSentiment(marketData as MarketData)
-  const holdingAnalyses = await Promise.all(
-    portfolioHoldings.map((holding: PortfolioHolding) =>
-      aiService.analyzeStock({
-        symbol: holding.symbol,
-        currentPrice: holding.currentPrice ?? 0,
-        historicalData: [],
-        newsData: [],
-        technicalIndicators: {} as TechnicalIndicators,
-        userSettings: user.settings,
-      })
-    )
-  )
-  const validAnalyses = holdingAnalyses.filter(Boolean) as AIAnalysisResponse[]
-  const newsSummary = await aiService.summarizeNews(news)
+  if (!session?.user?.id) redirect('/')
 
   return (
     <PageWrapper>
@@ -66,10 +24,72 @@ export default async function InsightsPage() {
         description="AI-powered analysis and recommendations for your portfolio"
       />
       <Suspense fallback={<InsightsSkeleton />}>
-        <InsightsClient {...{ validAnalyses, marketSentiment, portfolioHoldings, user, newsSummary, news }} />
+        <InsightsContent userId={session.user.id} />
       </Suspense>
     </PageWrapper>
   )
+}
+
+async function InsightsContent({ userId }: { userId: string }) {
+  try {
+  const [prismaUser, prismaSettings, prismaAccounts] = await Promise.all([
+    prisma.user.findUnique({ where: { id: userId }, select: { id: true, name: true, email: true } }),
+    prisma.userSettings.findUnique({ where: { userId } }),
+    prisma.brokerAccount.findMany({ where: { userId, isActive: true } }),
+  ])
+
+  if (!prismaUser) redirect('/')
+
+  const appSettings = mapPrismaToAppSettings(prismaSettings)
+  const brokerAccounts = prismaAccounts.map(mapPrismaToAppAccount)
+  const portfolioHoldings: PortfolioHolding[] = await getBrokerPortfolios(brokerAccounts)
+  const news = await fetchMarketNews(portfolioHoldings.map(h => h.symbol)).catch(() => [])
+
+  const aiService = new GeminiAIService()
+  const [holdingAnalyses, newsSummaryRaw] = await Promise.all([
+    Promise.all(
+      portfolioHoldings.slice(0, 5).map((holding: PortfolioHolding) =>
+        aiService.analyzeStock({
+          symbol: holding.symbol,
+          currentPrice: holding.currentPrice ?? 0,
+          historicalData: [],
+          newsData: news.filter(n => n.symbols.includes(holding.symbol)),
+          technicalIndicators: undefined,
+          userSettings: appSettings ?? undefined,
+        }).catch(() => null)
+      )
+    ),
+    aiService.summarizeNews(news).catch(() => null),
+  ])
+  const validAnalyses = holdingAnalyses.filter(Boolean) as AIAnalysisResponse[]
+  const newsSummary = typeof newsSummaryRaw === 'string' || newsSummaryRaw === null
+    ? { summary: '', keyPoints: [], mentionedStocks: [] }
+    : newsSummaryRaw
+
+  const user = {
+    id: prismaUser.id,
+    name: prismaUser.name ?? 'User',
+    settings: appSettings ?? { id: '', userId, maxBudgetPerTrade: 50000, riskTolerance: 'MODERATE' as const, autoTradingEnabled: false, excludedSectors: [], preferredMarketCap: 'MULTI_CAP' as const, otpMethod: 'TOTP' as const, createdAt: new Date(), updatedAt: new Date() },
+  }
+
+  return (
+    <InsightsClient
+      validAnalyses={validAnalyses}
+      portfolioHoldings={portfolioHoldings}
+      user={user}
+      newsSummary={newsSummary}
+      news={news}
+    />
+  )
+  } catch (err) {
+    console.error('Insights page error:', err)
+    return (
+      <div className="bg-red-950/30 border border-red-800 rounded-xl p-6">
+        <p className="text-red-400 font-medium">Unable to load insights</p>
+        <p className="text-red-500/60 text-sm mt-1">Refresh or contact support if this persists.</p>
+      </div>
+    )
+  }
 }
 
 function InsightsSkeleton() {
@@ -79,40 +99,18 @@ function InsightsSkeleton() {
         {[1, 2, 3, 4].map(i => (
           <Card key={i} className="animate-pulse">
             <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-2">
-                  <div className="w-20 h-3 bg-muted rounded"></div>
-                  <div className="w-12 h-6 bg-muted rounded"></div>
-                </div>
-                <div className="w-8 h-8 bg-muted rounded"></div>
+              <div className="space-y-2">
+                <div className="w-20 h-3 bg-slate-700 rounded" />
+                <div className="w-12 h-6 bg-slate-700 rounded" />
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
-
-      <div>
-        <div className="w-32 h-5 bg-muted rounded mb-4"></div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[1, 2, 3, 4].map(i => (
-            <Card key={i} className="animate-pulse">
-              <CardHeader>
-                <div className="w-24 h-4 bg-muted rounded"></div>
-                <div className="w-32 h-3 bg-muted rounded"></div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="w-full h-3 bg-muted rounded"></div>
-                  <div className="w-3/4 h-3 bg-muted rounded"></div>
-                  <div className="flex gap-2 mt-4">
-                    <div className="w-16 h-8 bg-muted rounded"></div>
-                    <div className="w-16 h-8 bg-muted rounded"></div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {[1, 2, 3, 4].map(i => (
+          <div key={i} className="h-40 bg-slate-800 rounded-lg animate-pulse" />
+        ))}
       </div>
     </div>
   )

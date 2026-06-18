@@ -2,141 +2,101 @@ import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import { authOptions, prisma } from '@/lib/auth'
-import { DashboardHeader } from '@/components/dashboard/dashboard-header'
+import { AppNav } from '@/components/layout/app-nav'
 import { PortfolioOverview } from '@/components/dashboard/portfolio-overview'
 import { AIInsights } from '@/components/dashboard/ai-insights'
-import { MarketSummary } from '@/components/dashboard/market-summary'
 import { QuickActions } from '@/components/dashboard/quick-actions'
 import { getBrokerPortfolios } from '@/lib/services/portfolio'
 import { getAIInsights } from '@/lib/services/ai'
-import { getMarketData } from '@/lib/services/market'
 import { PageWrapper } from '@/components/layout/page-wrapper'
 import { DashboardSkeleton } from '@/components/dashboard/dashboard-skeleton'
-import { TopMovers } from '@/components/dashboard/top-movers'
 import { RecentActivity } from '@/app/dashboard/recent-activity'
-import type { BrokerAccount } from '@/types'
+import { BrokerIntegration } from '@/components/dashboard/broker-integration'
+import { LivePositions } from '@/components/dashboard/live-positions'
+import { getBrokerAccounts } from '@/lib/broker'
 import { mapPrismaToAppSettings } from '@/lib/user'
+import { fetchPositions } from '@/lib/services/positions'
 
 async function getUserData(userId: string) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, name: true, email: true, image: true },
-  });
-
-  if (!user) {
-    return null;
-  }
-
-  const appSettings = await prisma.userSettings.findUnique({
-    where: { userId },
-  });
-
-  return {
-    user,
-    appSettings: mapPrismaToAppSettings(appSettings),
-  };
-}
-
-async function getBrokerAccounts(userId: string) {
-  return prisma.brokerAccount.findMany({
-    where: { userId },
-  });
+    select: { id: true, name: true, email: true, image: true, settings: true },
+  })
+  if (!user) return null
+  const { settings, ...rest } = user
+  return { user: rest, appSettings: mapPrismaToAppSettings(settings) }
 }
 
 export default async function DashboardPage() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <DashboardHeader />
-      <PageWrapper fallback={<DashboardSkeleton />}>
+    <div className="min-h-screen bg-slate-950">
+      <AppNav />
+      <PageWrapper bare fallback={<DashboardSkeleton />}>
         <DashboardContent />
       </PageWrapper>
     </div>
   )
 }
 
-interface DashboardContentProps {
-  userId: string
-}
-
 async function DashboardContent() {
   try {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
-      redirect('/auth/signin')
-    }
+    if (!session?.user?.id) redirect('/')
     const userId = session.user.id
 
-    const [userData, brokerAccounts] = await Promise.all([
+    const [userData, brokerAccounts, initialPositions] = await Promise.all([
       getUserData(userId),
       getBrokerAccounts(userId),
-    ]);
+      fetchPositions(userId).catch(() => []),
+    ])
+    if (!userData) redirect('/')
 
-    if (!userData) {
-      redirect('/auth/signin')
-    }
-
-    const { user, appSettings } = userData;
-
-    // Fetch portfolio data from all connected brokers
-    const portfolioData = await getBrokerPortfolios(brokerAccounts as BrokerAccount[])
-    
-    // Get AI insights for portfolio holdings
-    const aiInsights = await getAIInsights(
-      portfolioData.map(holding => holding.symbol),
-      appSettings
-    )
-
-    // Get current market data
-    const marketData = await getMarketData()
+    const { user, appSettings } = userData
+    const portfolioData = await getBrokerPortfolios(brokerAccounts)
+    const symbols = portfolioData.map(h => h.symbol)
 
     return (
-      <div className="space-y-6">
-        {/* Welcome Section */}
-        <div className="bg-white rounded-lg border p-6">
-          <h1 className="text-2xl font-bold text-gray-900">
-            Welcome back, {user.name}!
-          </h1>
-          <p className="text-gray-600 mt-1">
-            Here's your trading dashboard for today
-          </p>
+      <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+
+        {/* Greeting */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-white">Hey, {user.name?.split(' ')[0] ?? 'Trader'} 👋</h1>
+            <p className="text-sm text-slate-500 mt-0.5">{new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' })}</p>
+          </div>
+          <QuickActions />
         </div>
 
-        {/* Quick Actions */}
-        <QuickActions brokerAccounts={brokerAccounts as BrokerAccount[]} />
+        {/* Main grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
-        {/* Main Dashboard Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Portfolio Overview - Takes 2 columns on large screens */}
-          <div className="lg:col-span-2">
-            <PortfolioOverview 
-              holdings={portfolioData}
-              brokerAccounts={brokerAccounts as BrokerAccount[]}
-            />
+          {/* Left — portfolio */}
+          <div className="lg:col-span-2 space-y-5">
+            <PortfolioOverview holdings={portfolioData} brokerAccounts={brokerAccounts} />
+
+            {/* Live intraday positions — server-prefetched, no loading delay */}
+            <LivePositions initialPositions={initialPositions} />
+
+            {/* Recent activity */}
+            <div className="bg-[#0f1117] border border-slate-800 rounded-xl overflow-hidden">
+              <div className="px-5 py-4 border-b border-slate-800">
+                <p className="text-xs font-bold text-white uppercase tracking-widest">Recent Activity</p>
+              </div>
+              <div className="p-5">
+                <Suspense fallback={<p className="text-sm text-slate-600">Loading…</p>}>
+                  <RecentActivity userId={userId} />
+                </Suspense>
+              </div>
+            </div>
           </div>
 
-          {/* Market Summary - Takes 1 column */}
-          <div className="space-y-6">
-            <MarketSummary marketData={marketData} />
-            <TopMovers />
-            
-            {/* AI Insights */}
-            <AIInsights 
-              insights={aiInsights}
-              userPreferences={appSettings}
-            />
-          </div>
-        </div>
+          {/* Right — sidebar */}
+          <div className="space-y-5">
+            <BrokerIntegration brokerAccounts={brokerAccounts} />
 
-        {/* Recent Activity */}
-        <div className="bg-white rounded-lg border">
-          <div className="p-6 border-b">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Recent Activity
-            </h2>
-          </div>
-          <div className="p-6">
-            <Suspense fallback={<div>Loading recent trades...</div>}>
-              <RecentActivity userId={userId} />
+            {/* AI insights loads separately — doesn't block portfolio */}
+            <Suspense fallback={<AIInsightsSkeleton />}>
+              <AIInsightsLoader symbols={symbols} appSettings={appSettings} />
             </Suspense>
           </div>
         </div>
@@ -145,12 +105,37 @@ async function DashboardContent() {
   } catch (error) {
     console.error('Dashboard error:', error)
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-        <h2 className="text-red-800 font-medium">Unable to load dashboard</h2>
-        <p className="text-red-600 text-sm mt-1">
-          Please refresh the page or contact support if the issue persists.
-        </p>
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="bg-red-950/30 border border-red-800 rounded-xl p-6">
+          <p className="text-red-400 font-medium">Unable to load dashboard</p>
+          <p className="text-red-500/60 text-sm mt-1">Refresh or contact support if this persists.</p>
+        </div>
       </div>
     )
   }
+}
+
+async function AIInsightsLoader({ symbols, appSettings }: { symbols: string[]; appSettings: ReturnType<typeof mapPrismaToAppSettings> }) {
+  const insights = await getAIInsights(symbols, appSettings)
+  return <AIInsights insights={insights} userPreferences={appSettings} />
+}
+
+function AIInsightsSkeleton() {
+  return (
+    <div className="bg-[#0f1117] border border-slate-800 rounded-xl overflow-hidden animate-pulse">
+      <div className="px-5 py-4 border-b border-slate-800">
+        <div className="h-3 w-20 bg-slate-800 rounded" />
+      </div>
+      {[1, 2, 3].map(i => (
+        <div key={i} className="px-5 py-3.5 border-b border-slate-800/50">
+          <div className="flex justify-between mb-2">
+            <div className="h-3 w-12 bg-slate-800 rounded" />
+            <div className="h-3 w-10 bg-slate-800 rounded" />
+          </div>
+          <div className="h-2 w-full bg-slate-800/60 rounded" />
+          <div className="h-2 w-3/4 bg-slate-800/60 rounded mt-1" />
+        </div>
+      ))}
+    </div>
+  )
 }

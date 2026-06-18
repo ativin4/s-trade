@@ -1,12 +1,12 @@
 import { GoogleGenerativeAI, GenerativeModel, HarmCategory, HarmBlockThreshold } from '@google/generative-ai'
-import { ExternalAPIError } from '@/types'
+import { ExternalAPIError } from '@/app/types'
 import type { 
   AIAnalysisRequest, 
   AIAnalysisResponse, 
   MarketData, 
   AIRecommendation,
   RiskLevel
-} from '@/types'
+} from '@/app/types'
 
 interface GeminiResponse {
   recommendation: AIRecommendation
@@ -31,7 +31,7 @@ export class GeminiAIService {
 
     this.genAI = new GoogleGenerativeAI(apiKey)
     this.model = this.genAI.getGenerativeModel({ 
-      model: "gemini-pro",
+      model: "gemini-flash-latest",
       generationConfig: {
         temperature: 0.3, // Lower temperature for more consistent financial analysis
         topK: 40,

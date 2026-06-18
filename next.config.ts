@@ -56,10 +56,7 @@ const nextConfig: NextConfig = {
         source: '/api/proxy/stock-data/:path*',
         destination: 'https://api.upstox.com/v2/:path*',
       },
-      {
-        source: '/api/proxy/market-data/:path*',
-        destination: 'https://api.kite.trade/:path*',
-      },
+
     ]
   },
   async redirects() {

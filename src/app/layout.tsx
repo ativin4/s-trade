@@ -4,6 +4,7 @@ import { Inter } from 'next/font/google'
 import { Providers } from '@/components/providers'
 import { Toaster } from 'react-hot-toast'
 import { cn } from '@/lib/utils'
+import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter'
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -23,7 +24,11 @@ export const metadata: Metadata = {
   authors: [{ name: 'S-Trade Team' }],
   manifest: '/manifest.json',
   icons: {
-    icon: '/icon-192x192.png',
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/icon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+    ],
     apple: '/icon-192x192.png',
   },
 }
@@ -43,6 +48,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
         'min-h-screen bg-background font-sans antialiased',
         inter.variable
       )}>
+        <AppRouterCacheProvider>
         <Providers>
           {children}
           <Toaster 
@@ -57,6 +63,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
             }}
           />
         </Providers>
+        </AppRouterCacheProvider>
       </body>
     </html>
   )

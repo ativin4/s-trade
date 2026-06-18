@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import type { UserSettings as AppUserSettings, RiskTolerance, MarketCap, OTPMethod } from "@/types";
+import type { UserSettings as AppUserSettings, RiskTolerance, MarketCap, OTPMethod } from "@/app/types";
 
 const prisma = new PrismaClient();
 
@@ -10,19 +10,22 @@ const prisma = new PrismaClient();
 export function mapPrismaToAppSettings(settings: {
   id: string;
   userId: string;
-  riskTolerance: string | null;
+  maxBudgetPerTrade?: number | null;
+  riskTolerance?: string | null;
+  autoTradingEnabled?: boolean | null;
+  excludedSectors?: string[];
+  preferredMarketCap?: string | null;
+  otpMethod?: string | null;
 } | null): AppUserSettings | null {
   return settings ? {
     id: settings.id,
     userId: settings.userId,
-    riskTolerance: (settings.riskTolerance as RiskTolerance) || "MODERATE",
-
-    // Fields not defined in the Prisma schema (dummy defaults)
-    maxBudgetPerTrade: 10000,
-    autoTradingEnabled: false,
-    excludedSectors: [],
-    preferredMarketCap: "MULTI_CAP" as MarketCap,
-    otpMethod: "EMAIL" as OTPMethod,
+    maxBudgetPerTrade: settings.maxBudgetPerTrade ?? 10000,
+    riskTolerance: (settings.riskTolerance as RiskTolerance) ?? 'MODERATE',
+    autoTradingEnabled: settings.autoTradingEnabled ?? false,
+    excludedSectors: settings.excludedSectors ?? [],
+    preferredMarketCap: (settings.preferredMarketCap as MarketCap) ?? 'MULTI_CAP',
+    otpMethod: (settings.otpMethod as OTPMethod) ?? 'EMAIL',
     createdAt: new Date(),
     updatedAt: new Date(),
   } : null;

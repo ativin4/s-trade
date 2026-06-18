@@ -1,41 +1,26 @@
 import type { NextAuthOptions } from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
-import GithubProvider from 'next-auth/providers/github'
 import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import { PrismaClient } from "@prisma/client";
 import { withAccelerate } from '@prisma/extension-accelerate'
 
-type Env = {
-  GOOGLE_CLIENT_ID: string;
-  GOOGLE_CLIENT_SECRET: string;
-  GITHUB_CLIENT_ID: string;
-  GITHUB_CLIENT_SECRET: string;
-  NEXTAUTH_SECRET: string;
-  NEXTAUTH_URL: string;
-};
-
-const env: Env = {
-  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID!,
-  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET!,
-  GITHUB_CLIENT_ID: process.env.GITHUB_CLIENT_ID!,
-  GITHUB_CLIENT_SECRET: process.env.GITHUB_CLIENT_SECRET!,
-  NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET!,
-  NEXTAUTH_URL: process.env.NEXTAUTH_URL!,
-};
-
-const prismaClient = new PrismaClient()
+// Singleton to avoid exhausting connections on dev hot-reloads
+declare global { var _prismaBase: PrismaClient | undefined }
+const prismaClient = globalThis._prismaBase ?? new PrismaClient()
+if (process.env.NODE_ENV !== 'production') globalThis._prismaBase = prismaClient
 export const prisma = prismaClient.$extends(withAccelerate())
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prismaClient),
   providers: [
     GoogleProvider({
-      clientId: env.GOOGLE_CLIENT_ID,
-      clientSecret: env.GOOGLE_CLIENT_SECRET,
-    }),
-    GithubProvider({
-      clientId: env.GITHUB_CLIENT_ID,
-      clientSecret: env.GITHUB_CLIENT_SECRET,
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          prompt: 'select_account',
+        },
+      },
     }),
   ],
   session: {
@@ -58,4 +43,9 @@ export const authOptions: NextAuthOptions = {
     },
   },
   secret: process.env.NEXTAUTH_SECRET,
+  debug: process.env.NODE_ENV !== 'production',
+  pages: {
+    signIn: '/',
+    error: '/',
+  },
 }

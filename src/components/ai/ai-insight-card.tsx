@@ -1,4 +1,4 @@
-import type { AIAnalysisResponse } from '@/types'
+import type { AIAnalysisResponse } from '@/app/types'
 import { Card, CardContent, CardHeader} from '@/components/ui/card'
 import Typography from '@mui/material/Typography'
 import { Button } from '@/components/ui/button'

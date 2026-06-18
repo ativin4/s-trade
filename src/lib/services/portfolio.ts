@@ -1,71 +1,92 @@
 
 import type { BrokerAccount, PortfolioHolding } from '@/app/types'
-
+import { getGrowwHoldings } from '@/lib/services/groww'
 import { getMcpPortfolio } from '@/lib/mcp'
-import type { AIRecommendation } from '@/types'
+import { brokerAdapter } from '@/lib/services/broker-adapter'
+import { isGrowwMcp } from '@/lib/broker'
+import type { AIRecommendation } from '@/app/types'
+
+function toPortfolioHolding(h: import('@/lib/services/broker-adapter').AdapterHolding, brokerAccountId: string): PortfolioHolding {
+  const invested = h.avgPrice * h.qty
+  return {
+    symbol:           h.symbol,
+    name:             h.symbol,
+    quantity:         h.qty,
+    avgPrice:         h.avgPrice,
+    currentPrice:     h.ltp,
+    marketValue:      h.ltp * h.qty,
+    gainLoss:         h.pnl,
+    gainLossPercent:  invested > 0 ? (h.pnl / invested) * 100 : 0,
+    change:           h.dayChange,
+    changePercent:    h.dayChangePct,
+    aiRecommendation: 'HOLD' as const,
+    confidence:       0,
+    insight:          '',
+    brokerAccountId,
+  }
+}
+
+function settled<T>(results: PromiseSettledResult<T[]>[]): T[] {
+  return results.flatMap(r => r.status === 'fulfilled' ? r.value : [])
+}
 
 export async function getBrokerPortfolios(
   accounts: BrokerAccount[]
 ): Promise<PortfolioHolding[]> {
-  const portfolioPromises = accounts.map(async (account) => {
-    if (account.brokerName === 'zerodha') {
-      return getMcpPortfolio(account)
-    }
-    // In a real app, you would make API calls to the respective brokers
-    // and aggregate the portfolio data.
-    // For now, we return mock data for other brokers.
-    return [
-      {
-        symbol: 'RELIANCE',
-        name: 'Reliance Industries',
-        quantity: 10,
-        avgPrice: 2800,
-        currentPrice: 2850,
-        change: 50,
-        changePercent: 1.78,
-        marketValue: 28500,
-        gainLoss: 500,
-        gainLossPercent: 1.78,
-        aiRecommendation: 'HOLD' as AIRecommendation,
-        confidence: 0.7,
-        insight: 'Reliance is expected to perform well in the coming weeks.',
-        brokerAccountId: account.id,
-      },
-      {
-        symbol: 'TCS',
-        name: 'Tata Consultancy Services',
-        quantity: 20,
-        avgPrice: 3800,
-        currentPrice: 3850,
-        change: 50,
-        changePercent: 1.31,
-        marketValue: 77000,
-        gainLoss: 1000,
-        gainLossPercent: 1.31,
-        aiRecommendation: 'BUY' as AIRecommendation,
-        confidence: 0.8,
-        insight: 'TCS is showing strong buy signals.',
-        brokerAccountId: account.id,
-      },
-    ]
-  })
+  const syncedAccounts    = accounts.filter(a => a.isAdapterActive)
+  const nonSyncedAccounts = accounts.filter(a => !a.isAdapterActive)
 
-  const portfolios = await Promise.all(portfolioPromises)
-  return portfolios.flat()
+  // Adapter-synced and fallback paths are independent — run in parallel
+  const [adapterResults, fallbackResults] = await Promise.all([
+    brokerAdapter.available()
+      ? Promise.allSettled(
+          syncedAccounts.map(async (acc) => {
+            const items = await brokerAdapter.holdings(acc.brokerName.toLowerCase())
+            return items.map(h => toPortfolioHolding(h, acc.id))
+          })
+        )
+      : Promise.resolve([] as PromiseSettledResult<PortfolioHolding[]>[]),
+
+    Promise.allSettled(
+      nonSyncedAccounts.map(async (account) => {
+        switch (account.brokerName) {
+          case 'groww':
+            // isGrowwMcp: legacy MCP-sentinel accounts return empty; real API handled by adapter
+            if (isGrowwMcp(account)) return [] as PortfolioHolding[]
+            return getGrowwHoldings(account)
+          case 'zerodha':
+            return getMcpPortfolio(account)
+          default:
+            return [] as PortfolioHolding[]
+        }
+      })
+    ),
+  ])
+
+  return [...settled(adapterResults), ...settled(fallbackResults)]
 }
-export async function getPortfolioPerformance(): Promise<{
+
+export async function getPortfolioPerformance(holdings: PortfolioHolding[] = []): Promise<{
   totalValue: number
+  totalInvested: number
   dailyChange: number
   dailyChangePercent: number
   overallGainLoss: number
   overallGainLossPercent: number
 }> {
-  // Mock data - replace with actual calculations
+  let totalValue = 0, totalInvested = 0, overallGainLoss = 0, dailyChange = 0
+  for (const h of holdings) {
+    totalValue     += h.marketValue
+    totalInvested  += h.avgPrice * h.quantity
+    overallGainLoss += h.gainLoss
+    dailyChange    += h.change * h.quantity
+  }
   return {
-    totalValue: 105500,
-    dailyChange: 1500,
-    dailyChangePercent: 1.44,
-    overallGainLoss: 1500,
-    overallGainLossPercent: 1.44,
+    totalValue,
+    totalInvested,
+    dailyChange,
+    dailyChangePercent:     totalValue    > 0 ? (dailyChange     / totalValue)    * 100 : 0,
+    overallGainLoss,
+    overallGainLossPercent: totalInvested > 0 ? (overallGainLoss / totalInvested) * 100 : 0,
   }
 }

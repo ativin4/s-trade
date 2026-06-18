@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react'
-import { UserNav } from './user-nav'
 
 interface PageHeaderProps {
   title: string
@@ -9,15 +8,16 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, description, children }: PageHeaderProps) {
   return (
-    <div className="flex items-center justify-between p-4 bg-card border-b">
+    <div className="flex items-center justify-between py-4">
       <div>
-        <h1 className="text-3xl font-bold">{title}</h1>
-        <p className="text-muted-foreground mt-1">{description}</p>
+        <h1 className="text-2xl font-bold text-white tracking-tight">{title}</h1>
+        <p className="text-sm text-slate-400 mt-0.5">{description}</p>
       </div>
-      <div className="flex items-center space-x-4">
-        {children}
-        <UserNav />
-      </div>
+      {children && (
+        <div className="flex items-center gap-3">
+          {children}
+        </div>
+      )}
     </div>
   )
 }

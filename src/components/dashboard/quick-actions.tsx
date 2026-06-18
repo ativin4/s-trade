@@ -1,37 +1,23 @@
-import AddIcon from '@mui/icons-material/Add';
-import SearchIcon from '@mui/icons-material/Search';
-import BusinessCenterIcon from '@mui/icons-material/BusinessCenter';
-import { Card, CardContent } from '@/components/ui/card'
-import Typography from '@mui/material/Typography'
 import Link from 'next/link'
 
-export function QuickActions({ brokerAccounts }: { brokerAccounts: any[] }) {
+const ACTIONS = [
+  { href: '/trade',    label: 'Trade',    color: 'text-blue-400 hover:text-blue-300'     },
+  { href: '/insights', label: 'Insights', color: 'text-violet-400 hover:text-violet-300' },
+  { href: '/brokers',  label: 'Brokers',  color: 'text-emerald-400 hover:text-emerald-300' },
+] as const
+
+export function QuickActions() {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-      <Card className="hover:shadow-md transition-shadow">
-        <CardContent className="p-4 flex flex-col items-center justify-center">
-          <Link href="/trade" className="text-center">
-            <SearchIcon className="w-8 h-8 mx-auto text-blue-600" />
-            <p className="mt-2 text-sm font-medium">Search & Trade</p>
-          </Link>
-        </CardContent>
-      </Card>
-      <Card className="hover:shadow-md transition-shadow">
-        <CardContent className="p-4 flex flex-col items-center justify-center">
-          <Link href="/brokers" className="text-center">
-            <BusinessCenterIcon className="w-8 h-8 mx-auto text-green-600" />
-            <p className="mt-2 text-sm font-medium">Manage Brokers</p>
-          </Link>
-        </CardContent>
-      </Card>
-      <Card className="hover:shadow-md transition-shadow">
-        <CardContent className="p-4 flex flex-col items-center justify-center">
-          <Link href="/insights" className="text-center">
-            <AddIcon className="w-8 h-8 mx-auto text-purple-600" />
-            <p className="mt-2 text-sm font-medium">AI Insights</p>
-          </Link>
-        </CardContent>
-      </Card>
+    <div className="hidden sm:flex items-center gap-1">
+      {ACTIONS.map(a => (
+        <Link
+          key={a.href}
+          href={a.href}
+          className={`px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-800/60 border border-slate-700/50 hover:border-slate-600 transition-colors ${a.color}`}
+        >
+          {a.label}
+        </Link>
+      ))}
     </div>
   )
 }

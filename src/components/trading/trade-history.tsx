@@ -1,4 +1,4 @@
-import type { Trade } from '@/types'
+import type { Trade } from '@/app/types'
 import { Card, CardContent, CardHeader} from '@/components/ui/card'
 import Typography from '@mui/material/Typography'
 import { Table, TableBody, TableCell, TableHead, TableRow } from '@/components/ui/table'

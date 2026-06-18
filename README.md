@@ -462,12 +462,6 @@ GET  /api/ai/sentiment/[symbol] - Get stock sentiment analysis
 POST /api/ai/technical-analysis - Get technical analysis
 ```
 
-#### Market Data
-```
-GET /api/market-data/[symbol] - Get real-time quotes
-GET /api/market-data/historical/[symbol] - Historical data
-```
-
 ### WebSocket Events
 ```javascript
 // Market data updates

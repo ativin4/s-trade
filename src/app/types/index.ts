@@ -19,14 +19,14 @@ export interface BrokerAccount {
   id: string
   userId: string
   brokerName: BrokerName
-  accountId: string
-  apiKey: string
-  apiSecret: string | null
-  accessToken: string | null
   isActive: boolean
-  balance: number
-  createdAt: Date
-  updatedAt: Date
+  isAdapterActive: boolean
+  clientCode: string | null
+  apiSecret: string | null
+  totpSecret: string | null
+  jwtToken: string | null
+  feedToken: string | null
+  refreshToken: string | null
 }
 
 export interface Trade {
@@ -229,7 +229,12 @@ export interface WebSocketMessage {
 }
 
 // Enums
-export type BrokerName = '5paisa' | 'zerodha' | 'groww'
+// India
+export type IndiaBrokerName = '5paisa' | 'zerodha' | 'groww' | 'angelone' | 'upstox' | 'icici' | 'hdfc' | 'kotak' | 'indmoney' | 'vested'
+// US
+export type USBrokerName = 'robinhood' | 'ibkr' | 'webull' | 'schwab'
+
+export type BrokerName = IndiaBrokerName | USBrokerName
 
 export type TradeType = 'BUY' | 'SELL'
 

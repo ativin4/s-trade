@@ -1,5 +1,7 @@
 import { PrismaClient } from "@prisma/client";
-import type { BrokerAccount as AppBrokerAccount, BrokerName } from "@/types";
+import type { BrokerAccount as AppBrokerAccount, BrokerName } from "@/app/types";
+
+export { GROWW_MCP_SENTINEL, isGrowwMcp } from '@/lib/broker-constants'
 
 const prisma = new PrismaClient();
 /**
@@ -12,21 +14,26 @@ export function mapPrismaToAppAccount(account: {
   userId: string;
   brokerName: string;
   isActive: boolean;
+  isAdapterActive?: boolean;
+  clientCode?: string | null;
+  apiSecret?: string | null;
+  totpSecret?: string | null;
+  jwtToken?: string | null;
+  feedToken?: string | null;
+  refreshToken?: string | null;
 }): AppBrokerAccount {
   return {
     id: account.id,
     userId: account.userId,
     brokerName: account.brokerName as BrokerName,
     isActive: account.isActive,
-
-    // Fields not persisted in DB, filled by logic/service layer:
-    accountId: `ACCOUNT_${account.id}`,
-    apiKey: process.env.DUMMY_API_KEY ?? "PLACEHOLDER_KEY",
-    apiSecret: process.env.DUMMY_API_SECRET ?? "PLACEHOLDER_SECRET",
-    accessToken: "TEMP_ACCESS_TOKEN",
-    balance: 0,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    isAdapterActive: account.isAdapterActive ?? false,
+    clientCode: account.clientCode ?? null,
+    apiSecret: account.apiSecret ?? null,
+    totpSecret: account.totpSecret ?? null,
+    jwtToken: account.jwtToken ?? null,
+    feedToken: account.feedToken ?? null,
+    refreshToken: account.refreshToken ?? null,
   };
 }
 
@@ -39,8 +46,6 @@ export async function getBrokerAccounts(userId: string): Promise<AppBrokerAccoun
   const accounts = await prisma.brokerAccount.findMany({
     where: { userId, isActive: true },
   });
-
-  // Map to application's domain model
   return accounts.map(mapPrismaToAppAccount);
 }
 

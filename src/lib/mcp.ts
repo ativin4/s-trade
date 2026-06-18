@@ -12,9 +12,9 @@ export async function getMcpPortfolio(
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${account.accessToken}`,
+          Authorization: `Bearer ${account.jwtToken}`,
         },
-        body: JSON.stringify({ accountId: account.accountId }),
+        body: JSON.stringify({ clientCode: account.clientCode }),
       }
     );
 

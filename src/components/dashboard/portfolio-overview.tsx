@@ -1,65 +1,180 @@
+'use client'
 
+import { useState } from 'react'
 import type { PortfolioHolding, BrokerAccount } from '@/app/types'
-import { Card, CardContent, CardHeader} from '@/components/ui/card'
-import Typography from '@mui/material/Typography'
 import { cn } from '@/lib/utils'
+import { fmtINR, fmtChangeINR } from '@/lib/format'
 
-interface PortfolioOverviewProps {
+interface Props {
   holdings: PortfolioHolding[]
   brokerAccounts: BrokerAccount[]
 }
 
-export function PortfolioOverview({ holdings, brokerAccounts }: PortfolioOverviewProps) {
-  const totalValue = holdings.reduce((sum, h) => sum + h.marketValue, 0)
-  const totalDailyChange = holdings.reduce((sum, h) => sum + h.change * h.quantity, 0)
-  const dailyChangePercent = totalValue > 0 ? (totalDailyChange / (totalValue - totalDailyChange)) * 100 : 0
+const TABLE_COLS = ['Symbol', 'Qty', 'Avg', 'LTP', 'Day Chg', 'Value', 'P&L', 'Broker'] as const
 
-  const brokerData = brokerAccounts.map(account => {
-    const accountHoldings = holdings.filter(h => h.brokerAccountId === account.id)
-    const accountValue = accountHoldings.reduce((sum, h) => sum + h.marketValue, 0)
-    return { ...account, holdingCount: accountHoldings.length, value: accountValue }
-  })
+export function PortfolioOverview({ holdings, brokerAccounts }: Props) {
+  const [activeBroker, setActiveBroker] = useState<string | null>(null)
+
+  const brokerMap = Object.fromEntries(brokerAccounts.map(a => [a.id, a.brokerName]))
+
+  const visible = activeBroker
+    ? holdings.filter(h => brokerMap[h.brokerAccountId] === activeBroker)
+    : holdings
+
+  const { totalValue, totalDailyChange, totalGainLoss } = visible.reduce(
+    (acc, h) => ({
+      totalValue:       acc.totalValue       + h.marketValue,
+      totalDailyChange: acc.totalDailyChange + h.change * h.quantity,
+      totalGainLoss:    acc.totalGainLoss    + h.gainLoss,
+    }),
+    { totalValue: 0, totalDailyChange: 0, totalGainLoss: 0 }
+  )
+  const dailyPct = totalValue > 0 ? (totalDailyChange / (totalValue - totalDailyChange)) * 100 : 0
+
+  const brokerRows = brokerAccounts.map(acc => {
+    const sub   = holdings.filter(h => h.brokerAccountId === acc.id)
+    const value = sub.reduce((s, h) => s + h.marketValue, 0)
+    return { ...acc, count: sub.length, value }
+  }).filter(b => b.count > 0)
+
+  // unique broker names from holdings
+  const activeBrokers = [...new Set(
+    holdings.map(h => brokerMap[h.brokerAccountId]).filter(b => b != null) as string[]
+  )]
 
   return (
-    <Card>
-      <CardHeader>
-        <Typography variant='h6'>Portfolio Overview</Typography>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <div className="text-center">
-            <p className="text-sm text-muted-foreground">Total Value</p>
-            <p className="text-2xl font-bold">₹{totalValue.toLocaleString('en-IN')}</p>
-          </div>
-          <div className="text-center">
-            <p className="text-sm text-muted-foreground">Daily Gain/Loss</p>
-            <p className={cn('text-2xl font-bold', totalDailyChange >= 0 ? 'text-bull-500' : 'text-bear-500')}>
-              {totalDailyChange >= 0 ? '+' : ''}₹{totalDailyChange.toLocaleString('en-IN')}
-            </p>
-          </div>
-          <div className="text-center">
-            <p className="text-sm text-muted-foreground">Daily Change %</p>
-            <p className={cn('text-2xl font-bold', dailyChangePercent >= 0 ? 'text-bull-500' : 'text-bear-500')}>
-              {dailyChangePercent.toFixed(2)}%
-            </p>
-          </div>
-        </div>
+    <div className="bg-[#0f1117] border border-slate-800 rounded-xl overflow-hidden">
+      {/* Stats row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-y md:divide-y-0 divide-slate-800">
+        <Stat label="Portfolio Value" value={fmtINR(totalValue)} />
+        <Stat
+          label="Today"
+          value={fmtChangeINR(totalDailyChange)}
+          sub={`${dailyPct >= 0 ? '+' : ''}${dailyPct.toFixed(2)}%`}
+          positive={totalDailyChange >= 0}
+        />
+        <Stat label="Total P&L" value={fmtChangeINR(totalGainLoss)} positive={totalGainLoss >= 0} />
+        <Stat label="Holdings" value={String(visible.length)} sub={holdings.length !== visible.length ? `of ${holdings.length}` : 'positions'} />
+      </div>
 
-        <div>
-          <h3 className="text-md font-semibold mb-3">By Broker</h3>
-          <div className="space-y-3">
-            {brokerData.map(account => (
-              <div key={account.id} className="flex justify-between items-center p-3 bg-muted/50 rounded-md">
-                <div>
-                  <p className="font-medium">{account.brokerName}</p>
-                  <p className="text-sm text-muted-foreground">{account.holdingCount} holdings</p>
-                </div>
-                <p className="font-semibold">₹{account.value.toLocaleString('en-IN')}</p>
-              </div>
-            ))}
-          </div>
+      {/* Broker filter chips */}
+      {activeBrokers.length > 1 && (
+        <div className="flex items-center gap-2 px-5 py-3 border-t border-slate-800 overflow-x-auto">
+          <button
+            onClick={() => setActiveBroker(null)}
+            className={cn(
+              'px-3 py-1 text-[11px] font-semibold rounded-full border transition-colors capitalize',
+              activeBroker === null
+                ? 'bg-blue-600 border-blue-600 text-white'
+                : 'border-slate-700 text-slate-500 hover:text-white hover:border-slate-500'
+            )}
+          >
+            All
+          </button>
+          {activeBrokers.map(b => (
+            <button
+              key={b}
+              onClick={() => setActiveBroker(b === activeBroker ? null : (b as string))}
+              className={cn(
+                'px-3 py-1 text-[11px] font-semibold rounded-full border transition-colors capitalize',
+                activeBroker === b
+                  ? 'bg-blue-600 border-blue-600 text-white'
+                  : 'border-slate-700 text-slate-500 hover:text-white hover:border-slate-500'
+              )}
+            >
+              {b}
+            </button>
+          ))}
         </div>
-      </CardContent>
-    </Card>
+      )}
+
+      {/* Holdings table */}
+      {visible.length > 0 ? (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-t border-slate-800">
+                {TABLE_COLS.map((h, i) => (
+                  <th
+                    key={h}
+                    className={cn(
+                      'px-4 py-2.5 text-left text-[11px] font-bold text-slate-600 uppercase tracking-widest',
+                      i === 0 && 'sticky left-0 bg-[#0f1117]'
+                    )}
+                  >
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800/50">
+              {visible.map(h => {
+                const broker = brokerMap[h.brokerAccountId] ?? '—'
+                const dayUp  = h.change >= 0
+                return (
+                  <tr key={`${h.brokerAccountId}-${h.symbol}`} className="hover:bg-slate-800/30 transition-colors">
+                    <td className="px-4 py-3 sticky left-0 bg-[#0f1117]">
+                      <p className="font-semibold text-white">{h.symbol}</p>
+                      <p className="text-[11px] text-slate-600">{h.name !== h.symbol ? h.name : ''}</p>
+                    </td>
+                    <td className="px-4 py-3 text-slate-300 tabular-nums">{h.quantity}</td>
+                    <td className="px-4 py-3 text-slate-400 tabular-nums">{fmtINR(h.avgPrice)}</td>
+                    <td className="px-4 py-3 text-white font-medium tabular-nums">{fmtINR(h.currentPrice)}</td>
+                    <td className={cn('px-4 py-3 tabular-nums text-[12px]', dayUp ? 'text-emerald-400' : 'text-red-400')}>
+                      <span>{dayUp ? '+' : ''}{h.changePercent.toFixed(2)}%</span>
+                      <span className="text-[11px] opacity-60 ml-1">{fmtChangeINR(h.change * h.quantity)}</span>
+                    </td>
+                    <td className="px-4 py-3 text-slate-300 tabular-nums">{fmtINR(h.marketValue)}</td>
+                    <td className={cn('px-4 py-3 tabular-nums font-medium', h.gainLoss >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+                      {fmtChangeINR(h.gainLoss)}
+                      <span className="text-[11px] ml-1 opacity-70">
+                        {h.gainLossPercent >= 0 ? '+' : ''}{h.gainLossPercent.toFixed(1)}%
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-[10px] font-medium text-slate-500 capitalize px-1.5 py-0.5 bg-slate-800 rounded">
+                        {broker}
+                      </span>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="px-5 py-10 text-center border-t border-slate-800">
+          <p className="text-slate-600 text-sm">No holdings yet</p>
+          <p className="text-slate-700 text-xs mt-1">Connect a broker to see your portfolio</p>
+        </div>
+      )}
+
+      {/* Broker breakdown footer */}
+      {brokerRows.length > 0 && (
+        <div className="flex items-center gap-6 px-5 py-3 border-t border-slate-800 overflow-x-auto">
+          {brokerRows.map(b => (
+            <div key={b.id} className="flex items-center gap-2 flex-shrink-0">
+              <span className="text-[11px] text-slate-500 font-medium capitalize">{b.brokerName}</span>
+              <span className="text-[11px] text-slate-400 tabular-nums">{fmtINR(b.value)}</span>
+              <span className="text-[10px] text-slate-700">·</span>
+              <span className="text-[11px] text-slate-600">{b.count} holdings</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function Stat({ label, value, sub, positive }: { label: string; value: string; sub?: string; positive?: boolean }) {
+  const color      = positive === undefined ? 'neutral' : positive ? 'up' : 'down'
+  const valueClass = { neutral: 'text-white', up: 'text-emerald-400', down: 'text-red-400' }[color]
+  const subClass   = { neutral: 'text-slate-500', up: 'text-emerald-500', down: 'text-red-500' }[color]
+  return (
+    <div className="px-5 py-4">
+      <p className="text-[11px] font-semibold text-slate-600 uppercase tracking-widest mb-1">{label}</p>
+      <p className={`text-xl font-bold tabular-nums ${valueClass}`}>{value}</p>
+      {sub && <p className={`text-xs mt-0.5 ${subClass}`}>{sub}</p>}
+    </div>
   )
 }

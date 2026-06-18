@@ -1,4 +1,4 @@
-import type { BrokerAccount } from '@/types';
+import type { BrokerAccount } from '@/app/types';
 
 interface BrokerPreferencesProps {
   userId: string;
