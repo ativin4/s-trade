@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
       allowedOrigins: process.env.NEXT_PUBLIC_APP_URL
-        ? [new URL(process.env.NEXT_PUBLIC_APP_URL).hostname]
+        ? [process.env.NEXT_PUBLIC_APP_URL.replace(/^https?:\/\//, '')]
         : ['localhost:3000'],
     },
   },
