@@ -32,12 +32,12 @@ function settled<T>(results: PromiseSettledResult<T[]>[]): T[] {
 }
 
 // Brokers with direct API support independent of the adapter
-const DIRECT_API_BROKERS = new Set(['groww', '5paisa', 'zerodha'])
+const DIRECT_API_BROKERS = new Set(['zerodha'])
 
 async function directHoldings(account: BrokerAccount): Promise<PortfolioHolding[]> {
   switch (account.brokerName) {
     case 'groww':
-      if (isGrowwMcp(account)) return []
+      if (isGrowwMcp(account)) return getMcpPortfolio(account)
       return getGrowwHoldings(account)
     case 'zerodha':
       return getMcpPortfolio(account)
