@@ -1,6 +1,7 @@
 
 import type { BrokerAccount, PortfolioHolding } from '@/app/types'
 import { getGrowwHoldings } from '@/lib/services/groww'
+import { getFivePaisaHoldings } from '@/lib/services/5paisa'
 import { getMcpPortfolio } from '@/lib/mcp'
 import { brokerAdapter } from '@/lib/services/broker-adapter'
 import { isGrowwMcp } from '@/lib/broker'
@@ -30,40 +31,51 @@ function settled<T>(results: PromiseSettledResult<T[]>[]): T[] {
   return results.flatMap(r => r.status === 'fulfilled' ? r.value : [])
 }
 
+// Brokers with direct API support independent of the adapter
+const DIRECT_API_BROKERS = new Set(['groww', '5paisa', 'zerodha'])
+
+async function directHoldings(account: BrokerAccount): Promise<PortfolioHolding[]> {
+  switch (account.brokerName) {
+    case 'groww':
+      if (isGrowwMcp(account)) return []
+      return getGrowwHoldings(account)
+    case 'zerodha':
+      return getMcpPortfolio(account)
+    case '5paisa':
+      return getFivePaisaHoldings(account)
+    default:
+      return []
+  }
+}
+
 export async function getBrokerPortfolios(
   accounts: BrokerAccount[]
 ): Promise<PortfolioHolding[]> {
-  const syncedAccounts    = accounts.filter(a => a.isAdapterActive)
-  const nonSyncedAccounts = accounts.filter(a => !a.isAdapterActive)
+  const adapterAvailable = brokerAdapter.available()
 
-  // Adapter-synced and fallback paths are independent — run in parallel
-  const [adapterResults, fallbackResults] = await Promise.all([
-    brokerAdapter.available()
+  // Adapter path: only synced accounts when adapter is actually configured
+  const adapterAccounts = adapterAvailable
+    ? accounts.filter(a => a.isAdapterActive && !DIRECT_API_BROKERS.has(a.brokerName))
+    : []
+  // Direct API: everything else (including synced accounts for adapter-less brokers)
+  const directAccounts = accounts.filter(
+    a => !adapterAvailable || !a.isAdapterActive || DIRECT_API_BROKERS.has(a.brokerName)
+  )
+
+  const [adapterResults, directResults] = await Promise.all([
+    adapterAccounts.length
       ? Promise.allSettled(
-          syncedAccounts.map(async (acc) => {
+          adapterAccounts.map(async (acc) => {
             const items = await brokerAdapter.holdings(acc.brokerName.toLowerCase())
             return items.map(h => toPortfolioHolding(h, acc.id))
           })
         )
       : Promise.resolve([] as PromiseSettledResult<PortfolioHolding[]>[]),
 
-    Promise.allSettled(
-      nonSyncedAccounts.map(async (account) => {
-        switch (account.brokerName) {
-          case 'groww':
-            // isGrowwMcp: legacy MCP-sentinel accounts return empty; real API handled by adapter
-            if (isGrowwMcp(account)) return [] as PortfolioHolding[]
-            return getGrowwHoldings(account)
-          case 'zerodha':
-            return getMcpPortfolio(account)
-          default:
-            return [] as PortfolioHolding[]
-        }
-      })
-    ),
+    Promise.allSettled(directAccounts.map(acc => directHoldings(acc))),
   ])
 
-  return [...settled(adapterResults), ...settled(fallbackResults)]
+  return [...settled(adapterResults), ...settled(directResults)]
 }
 
 export async function getPortfolioPerformance(holdings: PortfolioHolding[] = []): Promise<{

@@ -21,6 +21,7 @@ export function mapPrismaToAppAccount(account: {
   jwtToken?: string | null;
   feedToken?: string | null;
   refreshToken?: string | null;
+  extraCredentials?: string | null;
 }): AppBrokerAccount {
   return {
     id: account.id,
@@ -34,6 +35,7 @@ export function mapPrismaToAppAccount(account: {
     jwtToken: account.jwtToken ?? null,
     feedToken: account.feedToken ?? null,
     refreshToken: account.refreshToken ?? null,
+    extraCredentials: account.extraCredentials ?? null,
   };
 }
 
@@ -45,6 +47,11 @@ export function mapPrismaToAppAccount(account: {
 export async function getBrokerAccounts(userId: string): Promise<AppBrokerAccount[]> {
   const accounts = await prisma.brokerAccount.findMany({
     where: { userId, isActive: true },
+    select: {
+      id: true, userId: true, brokerName: true, isActive: true, isAdapterActive: true,
+      clientCode: true, apiSecret: true, totpSecret: true, jwtToken: true,
+      feedToken: true, refreshToken: true, extraCredentials: true,
+    },
   });
   return accounts.map(mapPrismaToAppAccount);
 }

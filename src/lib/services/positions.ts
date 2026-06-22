@@ -2,6 +2,7 @@ import { prisma } from '@/lib/auth'
 import { mapPrismaToAppAccount, isGrowwMcp } from '@/lib/broker'
 import { brokerAdapter } from '@/lib/services/broker-adapter'
 import { getGrowwPositions } from '@/lib/services/groww'
+import { getFivePaisaPositions } from '@/lib/services/5paisa'
 import type { PositionEntry } from '@/app/api/market/positions/route'
 
 function normalise(p: {
@@ -50,6 +51,7 @@ export async function fetchPositions(userId: string): Promise<PositionEntry[]> {
   const results = await Promise.allSettled(
     accounts.map(async (acc): Promise<PositionEntry[]> => {
       const account = mapPrismaToAppAccount(acc)
+      if (account.brokerName === '5paisa') return getFivePaisaPositions(account)
       if (account.brokerName !== 'groww' || isGrowwMcp(account)) return []
       const data = await getGrowwPositions(account)
       const raw: any[] = data?.data || data?.positions || []

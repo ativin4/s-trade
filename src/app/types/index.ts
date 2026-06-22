@@ -27,6 +27,7 @@ export interface BrokerAccount {
   jwtToken: string | null
   feedToken: string | null
   refreshToken: string | null
+  extraCredentials: string | null
 }
 
 export interface Trade {

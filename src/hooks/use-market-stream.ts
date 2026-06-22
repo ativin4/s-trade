@@ -5,10 +5,12 @@ import type { LtpEntry } from '@/lib/services/market-ltp'
 
 export type { LtpEntry }
 
+const POLL_MS = 5000
+
 export function useMarketStream(symbols: string[], exchange = 'NSE') {
   const [data, setData]   = useState<Record<string, LtpEntry>>({})
   const [stale, setStale] = useState(false)
-  const esRef = useRef<EventSource | null>(null)
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const symbolsKey = symbols.join(',')
 
   useEffect(() => {
@@ -16,31 +18,28 @@ export function useMarketStream(symbols: string[], exchange = 'NSE') {
 
     const url = `/api/market/stream?symbols=${encodeURIComponent(symbolsKey)}&exchange=${exchange}`
 
-    const open = () => {
+    const poll = async () => {
       if (document.hidden) return
-      esRef.current?.close()
-      const es = new EventSource(url)
-      esRef.current = es
-      es.onmessage = e => {
-        try { setData(JSON.parse(e.data)); setStale(false) } catch { /* ignore */ }
+      try {
+        const res = await fetch(url)
+        if (!res.ok) { setStale(true); return }
+        setData(await res.json())
+        setStale(false)
+      } catch {
+        setStale(true)
       }
-      es.onerror = () => setStale(true)
     }
+
+    poll()
+    timerRef.current = setInterval(poll, POLL_MS)
 
     const onVisibility = () => {
-      if (document.hidden) {
-        esRef.current?.close()
-        esRef.current = null
-      } else {
-        open()
-      }
+      if (!document.hidden) poll()
     }
-
-    open()
     document.addEventListener('visibilitychange', onVisibility)
+
     return () => {
-      esRef.current?.close()
-      esRef.current = null
+      if (timerRef.current) clearInterval(timerRef.current)
       document.removeEventListener('visibilitychange', onVisibility)
     }
   }, [symbolsKey, exchange])

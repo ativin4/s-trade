@@ -20,14 +20,21 @@ interface BrokerIntegrationProps {
 
 type Pending = { name: BrokerName; type: 'api' | 'mcp'; key: number }
 
+// Brokers that support both MCP and API connection types
+const DUAL_CONN_BROKERS = new Set<BrokerName>(['groww'])
+
 export function BrokerIntegration({ brokerAccounts }: BrokerIntegrationProps) {
   const [open, setOpen]         = useState(false)
   const [pending, setPending]   = useState<Pending | null>(null)
+  const [subPick, setSubPick]   = useState<BrokerName | null>(null)
   const dropRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (dropRef.current && !dropRef.current.contains(e.target as Node)) setOpen(false)
+      if (dropRef.current && !dropRef.current.contains(e.target as Node)) {
+        setOpen(false)
+        setSubPick(null)
+      }
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
@@ -39,8 +46,19 @@ export function BrokerIntegration({ brokerAccounts }: BrokerIntegrationProps) {
   const us    = available.filter(b => b.region === 'US')
 
   const pick = (name: BrokerName) => {
+    if (DUAL_CONN_BROKERS.has(name)) {
+      setSubPick(name)
+      return
+    }
     setOpen(false)
-    setPending(p => ({ name, type: name === 'groww' ? 'mcp' : 'api', key: (p?.key ?? 0) + 1 }))
+    setSubPick(null)
+    setPending(p => ({ name, type: 'api', key: (p?.key ?? 0) + 1 }))
+  }
+
+  const pickType = (name: BrokerName, type: 'api' | 'mcp') => {
+    setOpen(false)
+    setSubPick(null)
+    setPending(p => ({ name, type, key: (p?.key ?? 0) + 1 }))
   }
 
   return (
@@ -102,8 +120,14 @@ export function BrokerIntegration({ brokerAccounts }: BrokerIntegrationProps) {
         {/* Dropdown panel */}
         {open && (
           <div className="absolute top-full left-0 right-0 bg-[#0d0f14] border border-slate-700 rounded-xl shadow-2xl z-50 overflow-hidden mt-1 max-h-80 overflow-y-auto">
-            <BrokerPickerGroup label="India"          brokers={india} onPick={pick} />
-            <BrokerPickerGroup label="United States"  brokers={us}    onPick={pick} />
+            {subPick ? (
+              <ConnTypeSubPicker name={subPick} onBack={() => setSubPick(null)} onPick={pickType} />
+            ) : (
+              <>
+                <BrokerPickerGroup label="India"          brokers={india} onPick={pick} />
+                <BrokerPickerGroup label="United States"  brokers={us}    onPick={pick} />
+              </>
+            )}
           </div>
         )}
       </div>
@@ -152,6 +176,46 @@ function BrokerPickerGroup({
           </button>
         )
       })}
+    </div>
+  )
+}
+
+function ConnTypeSubPicker({
+  name, onBack, onPick,
+}: {
+  name: BrokerName
+  onBack: () => void
+  onPick: (name: BrokerName, type: 'api' | 'mcp') => void
+}) {
+  const meta = BROKER_META[name]
+  return (
+    <div>
+      <button
+        onClick={onBack}
+        className="flex items-center gap-1.5 px-3 pt-2.5 pb-1 text-[11px] text-slate-500 hover:text-white transition-colors"
+      >
+        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        Back
+      </button>
+      <p className="text-[9px] font-bold text-slate-600 uppercase tracking-widest px-3 pb-1">
+        Connect {meta?.label ?? name} via
+      </p>
+      <button
+        onClick={() => onPick(name, 'mcp')}
+        className="w-full flex flex-col px-3 py-2.5 text-left hover:bg-slate-800/70 transition-colors border-b border-slate-800/60"
+      >
+        <span className="text-[13px] font-medium text-slate-200">MCP (Recommended)</span>
+        <span className="text-[11px] text-slate-500">One-click, no API key needed</span>
+      </button>
+      <button
+        onClick={() => onPick(name, 'api')}
+        className="w-full flex flex-col px-3 py-2.5 text-left hover:bg-slate-800/70 transition-colors"
+      >
+        <span className="text-[13px] font-medium text-slate-200">API Key</span>
+        <span className="text-[11px] text-slate-500">TOTP auto-login with stored credentials</span>
+      </button>
     </div>
   )
 }
