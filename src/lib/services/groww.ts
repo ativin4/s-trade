@@ -87,41 +87,38 @@ export async function getGrowwAccessToken(account: BrokerAccount): Promise<strin
   throw new ExternalAPIError('Missing Groww credentials (need API key + TOTP secret or API secret)', 'groww')
 }
 
-export async function getGrowwHoldings(account: BrokerAccount): Promise<PortfolioHolding[]> {
-  const token = safeDecrypt(account.jwtToken) || await getGrowwAccessToken(account)
-
-  const res = await fetch(`${GROWW_API}/holdings/user`, {
-    headers: growwHeaders(token),
-  })
-
-  if (res.status === 401) {
-    // Token expired — re-auth and retry
-    const freshToken = await getGrowwAccessToken(account)
-    const retry = await fetch(`${GROWW_API}/holdings/user`, {
-      headers: growwHeaders(freshToken),
-    })
-    if (!retry.ok) throw new ExternalAPIError(`Groww holdings failed: ${retry.statusText}`, 'groww')
-    return mapGrowwHoldings(await retry.json(), account.id)
+async function growwFetch(account: BrokerAccount, url: string): Promise<Response> {
+  const stored = safeDecrypt(account.jwtToken)
+  const token  = stored || await getGrowwAccessToken(account)
+  const res    = await fetch(url, { headers: growwHeaders(token) })
+  if (res.status !== 401) return res
+  // Token expired — re-auth, persist, retry
+  const freshToken = await getGrowwAccessToken(account)
+  if (account.id) {
+    const { encrypt } = await import('@/lib/crypto')
+    const { prisma }  = await import('@/lib/auth')
+    await prisma.brokerAccount.update({
+      where: { id: account.id },
+      data: { jwtToken: encrypt(freshToken) },
+    }).catch(() => {})
   }
+  return fetch(url, { headers: growwHeaders(freshToken) })
+}
 
+export async function getGrowwHoldings(account: BrokerAccount): Promise<PortfolioHolding[]> {
+  const res = await growwFetch(account, `${GROWW_API}/holdings/user`)
   if (!res.ok) throw new ExternalAPIError(`Groww holdings failed: ${res.statusText}`, 'groww')
   return mapGrowwHoldings(await res.json(), account.id)
 }
 
 export async function getGrowwPositions(account: BrokerAccount) {
-  const token = safeDecrypt(account.jwtToken) || await getGrowwAccessToken(account)
-  const res = await fetch(`${GROWW_API}/positions`, {
-    headers: growwHeaders(token),
-  })
+  const res = await growwFetch(account, `${GROWW_API}/positions`)
   if (!res.ok) throw new ExternalAPIError(`Groww positions failed: ${res.statusText}`, 'groww')
   return res.json()
 }
 
 export async function getGrowwMargin(account: BrokerAccount) {
-  const token = safeDecrypt(account.jwtToken) || await getGrowwAccessToken(account)
-  const res = await fetch(`${GROWW_API}/margin`, {
-    headers: growwHeaders(token),
-  })
+  const res = await growwFetch(account, `${GROWW_API}/margin`)
   if (!res.ok) throw new ExternalAPIError(`Groww margin failed: ${res.statusText}`, 'groww')
   return res.json()
 }

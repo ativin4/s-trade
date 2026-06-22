@@ -15,7 +15,6 @@ import { BrokerIntegration } from '@/components/dashboard/broker-integration'
 import { LivePositions } from '@/components/dashboard/live-positions'
 import { getBrokerAccounts } from '@/lib/broker'
 import { mapPrismaToAppSettings } from '@/lib/user'
-import { fetchPositions } from '@/lib/services/positions'
 
 async function getUserData(userId: string) {
   const user = await prisma.user.findUnique({
@@ -44,16 +43,14 @@ async function DashboardContent() {
     if (!session?.user?.id) redirect('/')
     const userId = session.user.id
 
-    const [userData, brokerAccounts, initialPositions] = await Promise.all([
+    // Only block on fast DB queries — broker API calls deferred to Suspense children
+    const [userData, brokerAccounts] = await Promise.all([
       getUserData(userId),
       getBrokerAccounts(userId),
-      fetchPositions(userId).catch(() => []),
     ])
     if (!userData) redirect('/')
 
     const { user, appSettings } = userData
-    const portfolioData = await getBrokerPortfolios(brokerAccounts)
-    const symbols = portfolioData.map(h => h.symbol)
 
     return (
       <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
@@ -72,10 +69,12 @@ async function DashboardContent() {
 
           {/* Left — portfolio */}
           <div className="lg:col-span-2 space-y-5">
-            <PortfolioOverview holdings={portfolioData} brokerAccounts={brokerAccounts} />
+            <Suspense fallback={<PortfolioSkeleton />}>
+              <PortfolioLoader brokerAccounts={brokerAccounts} />
+            </Suspense>
 
-            {/* Live intraday positions — server-prefetched, no loading delay */}
-            <LivePositions initialPositions={initialPositions} />
+            {/* Live positions — client polls independently */}
+            <LivePositions initialPositions={[]} />
 
             {/* Recent activity */}
             <div className="bg-[#0f1117] border border-slate-800 rounded-xl overflow-hidden">
@@ -94,9 +93,8 @@ async function DashboardContent() {
           <div className="space-y-5">
             <BrokerIntegration brokerAccounts={brokerAccounts} />
 
-            {/* AI insights loads separately — doesn't block portfolio */}
             <Suspense fallback={<AIInsightsSkeleton />}>
-              <AIInsightsLoader symbols={symbols} appSettings={appSettings} />
+              <AIInsightsLoader symbols={[]} appSettings={appSettings} />
             </Suspense>
           </div>
         </div>
@@ -113,6 +111,29 @@ async function DashboardContent() {
       </div>
     )
   }
+}
+
+async function PortfolioLoader({ brokerAccounts }: { brokerAccounts: import('@/app/types').BrokerAccount[] }) {
+  const holdings = await getBrokerPortfolios(brokerAccounts)
+  return <PortfolioOverview holdings={holdings} brokerAccounts={brokerAccounts} />
+}
+
+function PortfolioSkeleton() {
+  return (
+    <div className="bg-[#0f1117] border border-slate-800 rounded-xl overflow-hidden animate-pulse">
+      <div className="grid grid-cols-4 divide-x divide-slate-800">
+        {[1,2,3,4].map(i => (
+          <div key={i} className="px-5 py-4">
+            <div className="h-2 w-20 bg-slate-800 rounded mb-2" />
+            <div className="h-6 w-28 bg-slate-800 rounded" />
+          </div>
+        ))}
+      </div>
+      <div className="border-t border-slate-800 p-4 space-y-3">
+        {[1,2,3].map(i => <div key={i} className="h-10 bg-slate-800/60 rounded" />)}
+      </div>
+    </div>
+  )
 }
 
 async function AIInsightsLoader({ symbols, appSettings }: { symbols: string[]; appSettings: ReturnType<typeof mapPrismaToAppSettings> }) {

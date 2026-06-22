@@ -180,14 +180,36 @@ async function growwBatchLtp(
   return result
 }
 
+// In-memory cache: userId → { token, expiresAt }
+// Groww tokens typically last 24h; cache for 23h to avoid serving stale tokens.
+const _tokenCache = new Map<string, { token: string; expiresAt: number }>()
+const TOKEN_TTL_MS = 23 * 60 * 60 * 1000
+
 export async function resolveGrowwToken(userId: string): Promise<string | null> {
+  const cached = _tokenCache.get(userId)
+  if (cached && cached.expiresAt > Date.now()) return cached.token
+
   const acc = await prisma.brokerAccount.findFirst({
     where: { userId, brokerName: 'groww', isActive: true },
   })
   if (!acc) return null
   const account = mapPrismaToAppAccount(acc)
-  try { return account.jwtToken ?? await getGrowwAccessToken(account) }
-  catch { return null }
+
+  try {
+    const storedToken = account.jwtToken
+    if (storedToken) {
+      _tokenCache.set(userId, { token: storedToken, expiresAt: Date.now() + TOKEN_TTL_MS })
+      return storedToken
+    }
+    const freshToken = await getGrowwAccessToken(account)
+    _tokenCache.set(userId, { token: freshToken, expiresAt: Date.now() + TOKEN_TTL_MS })
+    // Persist so next cold start skips re-auth
+    await prisma.brokerAccount.update({
+      where: { id: acc.id },
+      data: { jwtToken: (await import('@/lib/crypto')).encrypt(freshToken) },
+    }).catch(() => {})
+    return freshToken
+  } catch { return null }
 }
 
 export async function fetchLtp(
