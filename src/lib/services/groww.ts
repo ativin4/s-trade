@@ -61,7 +61,9 @@ export async function getGrowwAccessToken(account: BrokerAccount): Promise<strin
       throw new ExternalAPIError(`Groww TOTP auth failed: ${body?.message || res.statusText}`, 'groww')
     }
     const data = await res.json()
-    return data.access_token
+    const token = data.access_token ?? data.accessToken
+    if (!token) throw new ExternalAPIError(`Groww TOTP auth: no token in response — keys: ${Object.keys(data).join(',')}`, 'groww')
+    return token as string
   }
 
   // Checksum flow: HMAC-SHA256(apiSecret, timestamp)
@@ -81,7 +83,9 @@ export async function getGrowwAccessToken(account: BrokerAccount): Promise<strin
       throw new ExternalAPIError(`Groww auth failed: ${body?.message || res.statusText}`, 'groww')
     }
     const data = await res.json()
-    return data.access_token
+    const token = data.access_token ?? data.accessToken
+    if (!token) throw new ExternalAPIError(`Groww checksum auth: no token in response — keys: ${Object.keys(data).join(',')}`, 'groww')
+    return token as string
   }
 
   throw new ExternalAPIError('Missing Groww credentials (need API key + TOTP secret or API secret)', 'groww')

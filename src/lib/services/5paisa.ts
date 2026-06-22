@@ -1,4 +1,4 @@
-import { createCipheriv, createHmac } from 'crypto'
+import { createHmac } from 'crypto'
 import type { BrokerAccount, PortfolioHolding } from '@/app/types'
 import { safeDecrypt } from '@/lib/crypto'
 import { ExternalAPIError } from '@/app/types'
@@ -6,11 +6,23 @@ import type { PositionEntry } from '@/app/api/market/positions/route'
 
 const BASE = 'https://Openapi.5paisa.com/VendorFeeds/api'
 
-// ── RC4 encryption (5paisa password encryption) ───────────────────────────────
+// ── RC4 encryption (pure JS — OpenSSL 3.x removed RC4 from node:crypto) ─────
 function rc4Encrypt(key: string, plaintext: string): string {
-  const cipher = createCipheriv('rc4' as any, Buffer.from(key, 'utf8'), Buffer.alloc(0))
-  const enc = Buffer.concat([cipher.update(Buffer.from(plaintext, 'utf8')), cipher.final()])
-  return enc.toString('base64')
+  const S = Array.from({ length: 256 }, (_, i) => i)
+  let j = 0
+  for (let i = 0; i < 256; i++) {
+    j = (j + S[i]! + key.charCodeAt(i % key.length)) % 256
+    ;[S[i], S[j]] = [S[j]!, S[i]!]
+  }
+  let i = 0; j = 0
+  const out: number[] = []
+  for (let k = 0; k < plaintext.length; k++) {
+    i = (i + 1) % 256
+    j = (j + S[i]!) % 256
+    ;[S[i], S[j]] = [S[j]!, S[i]!]
+    out.push(plaintext.charCodeAt(k) ^ S[(S[i]! + S[j]!) % 256]!)
+  }
+  return Buffer.from(out).toString('base64')
 }
 
 // ── RFC 6238 TOTP ─────────────────────────────────────────────────────────────
