@@ -75,6 +75,11 @@ export async function getBrokerPortfolios(
     Promise.allSettled(directAccounts.map(acc => directHoldings(acc))),
   ])
 
+  // Log failures so they're visible in Vercel runtime logs
+  for (const r of [...adapterResults, ...directResults]) {
+    if (r.status === 'rejected') console.error('[portfolio] broker fetch failed:', r.reason)
+  }
+
   return [...settled(adapterResults), ...settled(directResults)]
 }
 

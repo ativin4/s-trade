@@ -2,6 +2,7 @@ import { prisma } from '@/lib/auth'
 import { mapPrismaToAppAccount } from '@/lib/broker'
 import { getGrowwAccessToken } from '@/lib/services/groww'
 import { brokerAdapter } from '@/lib/services/broker-adapter'
+import { safeDecrypt } from '@/lib/crypto'
 
 const GROWW_API     = 'https://api.groww.in/v1'
 const GROWW_WEB     = 'https://groww.in'
@@ -196,17 +197,17 @@ export async function resolveGrowwToken(userId: string): Promise<string | null> 
   const account = mapPrismaToAppAccount(acc)
 
   try {
-    const storedToken = account.jwtToken
+    const storedToken = safeDecrypt(account.jwtToken)
     if (storedToken) {
       _tokenCache.set(userId, { token: storedToken, expiresAt: Date.now() + TOKEN_TTL_MS })
       return storedToken
     }
     const freshToken = await getGrowwAccessToken(account)
     _tokenCache.set(userId, { token: freshToken, expiresAt: Date.now() + TOKEN_TTL_MS })
-    // Persist so next cold start skips re-auth
+    const { encrypt } = await import('@/lib/crypto')
     await prisma.brokerAccount.update({
       where: { id: acc.id },
-      data: { jwtToken: (await import('@/lib/crypto')).encrypt(freshToken) },
+      data: { jwtToken: encrypt(freshToken) },
     }).catch(() => {})
     return freshToken
   } catch { return null }
