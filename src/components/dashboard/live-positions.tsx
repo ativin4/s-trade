@@ -66,18 +66,42 @@ export function LivePositions({ initialPositions = [] }: Props) {
         </Link>
       </div>
 
-      {/* Open positions grouped by product */}
+      {/* Open positions */}
       {groups.map(({ prod, rows }) => (
         <div key={prod}>
           {groups.length > 1 && (
-            <div className="px-5 py-1.5 flex items-center gap-2 bg-slate-900/30 border-b border-slate-800/40">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                {PRODUCT_LABEL[prod] ?? prod}
-              </span>
+            <div className="px-4 py-1.5 flex items-center gap-2 bg-slate-900/30 border-b border-slate-800/40">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{PRODUCT_LABEL[prod] ?? prod}</span>
               <span className="text-[10px] text-slate-700">{rows.length} pos</span>
             </div>
           )}
-          <table className="w-full text-[12px]">
+
+          {/* Mobile: compact rows */}
+          <div className="md:hidden divide-y divide-slate-800/25">
+            {rows.map((pos, i) => {
+              const up = (pos.unrealisedPnl ?? 0) >= 0
+              return (
+                <div key={i} className="flex items-center px-4 py-3 gap-3 active:bg-slate-800/40">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-slate-200 text-[13px]">{pos.symbol}</span>
+                      <span className={cn('text-[9px] font-bold px-1.5 py-0.5 rounded', pos.side === 'BUY' ? 'bg-emerald-900/60 text-emerald-400' : 'bg-red-900/60 text-red-400')}>{pos.side}</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-0.5">{pos.qty} qty · avg {fmtINR(pos.avgPrice)} · {pos.broker}</p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-[13px] font-bold text-white tabular-nums">{fmtINR(pos.ltp)}</p>
+                    <p className={cn('text-[12px] font-semibold tabular-nums', up ? 'text-emerald-400' : 'text-red-400')}>
+                      {fmtChangeINR(pos.unrealisedPnl ?? 0)}
+                    </p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Desktop: table */}
+          <table className="hidden md:table w-full text-[12px]">
             <thead>
               <tr className="text-[10px] text-slate-500 uppercase tracking-wider border-b border-slate-800/30">
                 <th className="text-left px-5 py-2">Symbol</th>
@@ -96,12 +120,7 @@ export function LivePositions({ initialPositions = [] }: Props) {
                   <tr key={i} className="hover:bg-slate-800/30 transition-colors">
                     <td className="px-5 py-2.5 font-semibold text-slate-200">{pos.symbol}</td>
                     <td className="px-5 py-2.5">
-                      <span className={cn(
-                        'text-[10px] font-bold px-1.5 py-0.5 rounded',
-                        pos.side === 'BUY'
-                          ? 'bg-emerald-900/50 text-emerald-400'
-                          : 'bg-red-900/50 text-red-400'
-                      )}>
+                      <span className={cn('text-[10px] font-bold px-1.5 py-0.5 rounded', pos.side === 'BUY' ? 'bg-emerald-900/50 text-emerald-400' : 'bg-red-900/50 text-red-400')}>
                         {pos.side}
                       </span>
                     </td>

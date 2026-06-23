@@ -53,7 +53,7 @@ async function DashboardContent() {
     const { user, appSettings } = userData
 
     return (
-      <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-7xl mx-auto px-4 py-6 space-y-6 pb-24 md:pb-6">
 
         {/* Greeting */}
         <div className="flex items-center justify-between">

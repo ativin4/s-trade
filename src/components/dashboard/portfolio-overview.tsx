@@ -88,60 +88,99 @@ export function PortfolioOverview({ holdings, brokerAccounts }: Props) {
         </div>
       )}
 
-      {/* Holdings table */}
+      {/* Holdings — mobile cards / desktop table */}
       {visible.length > 0 ? (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-t border-slate-800">
-                {TABLE_COLS.map((h, i) => (
-                  <th
-                    key={h}
-                    className={cn(
-                      'px-4 py-2.5 text-left text-[11px] font-bold text-slate-600 uppercase tracking-widest',
-                      i === 0 && 'sticky left-0 bg-[#0f1117]'
-                    )}
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/50">
-              {visible.map(h => {
-                const broker = brokerMap[h.brokerAccountId] ?? '—'
-                const dayUp  = h.change >= 0
-                return (
-                  <tr key={`${h.brokerAccountId}-${h.symbol}`} className="hover:bg-slate-800/30 transition-colors">
-                    <td className="px-4 py-3 sticky left-0 bg-[#0f1117]">
-                      <p className="font-semibold text-white">{h.symbol}</p>
-                      <p className="text-[11px] text-slate-600">{h.name !== h.symbol ? h.name : ''}</p>
-                    </td>
-                    <td className="px-4 py-3 text-slate-300 tabular-nums">{h.quantity}</td>
-                    <td className="px-4 py-3 text-slate-400 tabular-nums">{fmtINR(h.avgPrice)}</td>
-                    <td className="px-4 py-3 text-white font-medium tabular-nums">{fmtINR(h.currentPrice)}</td>
-                    <td className={cn('px-4 py-3 tabular-nums text-[12px]', dayUp ? 'text-emerald-400' : 'text-red-400')}>
-                      <span>{dayUp ? '+' : ''}{h.changePercent.toFixed(2)}%</span>
-                      <span className="text-[11px] opacity-60 ml-1">{fmtChangeINR(h.change * h.quantity)}</span>
-                    </td>
-                    <td className="px-4 py-3 text-slate-300 tabular-nums">{fmtINR(h.marketValue)}</td>
-                    <td className={cn('px-4 py-3 tabular-nums font-medium', h.gainLoss >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+        <>
+          {/* Mobile card list */}
+          <div className="md:hidden divide-y divide-slate-800/50 border-t border-slate-800">
+            {visible.map(h => {
+              const broker = brokerMap[h.brokerAccountId] ?? '—'
+              const up = h.gainLoss >= 0
+              const dayUp = h.changePercent >= 0
+              return (
+                <div key={`${h.brokerAccountId}-${h.symbol}`} className="flex items-center px-4 py-3 gap-3 active:bg-slate-800/40">
+                  {/* Left: symbol + meta */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-white text-[14px]">{h.symbol}</p>
+                      <span className="text-[9px] font-medium text-slate-600 capitalize bg-slate-800 px-1.5 py-0.5 rounded">{broker}</span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-[11px] text-slate-500">{h.quantity} qty · avg {fmtINR(h.avgPrice)}</span>
+                      <span className={cn('text-[10px] font-semibold', dayUp ? 'text-emerald-500' : 'text-red-400')}>
+                        {dayUp ? '▲' : '▼'} {Math.abs(h.changePercent).toFixed(2)}%
+                      </span>
+                    </div>
+                  </div>
+                  {/* Right: value + P&L */}
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-[14px] font-bold text-white tabular-nums">{fmtINR(h.marketValue)}</p>
+                    <p className={cn('text-[12px] font-semibold tabular-nums', up ? 'text-emerald-400' : 'text-red-400')}>
                       {fmtChangeINR(h.gainLoss)}
-                      <span className="text-[11px] ml-1 opacity-70">
+                      <span className="text-[10px] ml-1 opacity-70">
                         {h.gainLossPercent >= 0 ? '+' : ''}{h.gainLossPercent.toFixed(1)}%
                       </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-[10px] font-medium text-slate-500 capitalize px-1.5 py-0.5 bg-slate-800 rounded">
-                        {broker}
-                      </span>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+                    </p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-t border-slate-800">
+                  {TABLE_COLS.map((h, i) => (
+                    <th
+                      key={h}
+                      className={cn(
+                        'px-4 py-2.5 text-left text-[11px] font-bold text-slate-600 uppercase tracking-widest',
+                        i === 0 && 'sticky left-0 bg-[#0f1117]'
+                      )}
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/50">
+                {visible.map(h => {
+                  const broker = brokerMap[h.brokerAccountId] ?? '—'
+                  const dayUp  = h.change >= 0
+                  return (
+                    <tr key={`${h.brokerAccountId}-${h.symbol}`} className="hover:bg-slate-800/30 transition-colors">
+                      <td className="px-4 py-3 sticky left-0 bg-[#0f1117]">
+                        <p className="font-semibold text-white">{h.symbol}</p>
+                        <p className="text-[11px] text-slate-600">{h.name !== h.symbol ? h.name : ''}</p>
+                      </td>
+                      <td className="px-4 py-3 text-slate-300 tabular-nums">{h.quantity}</td>
+                      <td className="px-4 py-3 text-slate-400 tabular-nums">{fmtINR(h.avgPrice)}</td>
+                      <td className="px-4 py-3 text-white font-medium tabular-nums">{fmtINR(h.currentPrice)}</td>
+                      <td className={cn('px-4 py-3 tabular-nums text-[12px]', dayUp ? 'text-emerald-400' : 'text-red-400')}>
+                        <span>{dayUp ? '+' : ''}{h.changePercent.toFixed(2)}%</span>
+                        <span className="text-[11px] opacity-60 ml-1">{fmtChangeINR(h.change * h.quantity)}</span>
+                      </td>
+                      <td className="px-4 py-3 text-slate-300 tabular-nums">{fmtINR(h.marketValue)}</td>
+                      <td className={cn('px-4 py-3 tabular-nums font-medium', h.gainLoss >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+                        {fmtChangeINR(h.gainLoss)}
+                        <span className="text-[11px] ml-1 opacity-70">
+                          {h.gainLossPercent >= 0 ? '+' : ''}{h.gainLossPercent.toFixed(1)}%
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="text-[10px] font-medium text-slate-500 capitalize px-1.5 py-0.5 bg-slate-800 rounded">
+                          {broker}
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
       ) : (
         <div className="px-5 py-10 text-center border-t border-slate-800">
           <p className="text-slate-600 text-sm">No holdings yet</p>
