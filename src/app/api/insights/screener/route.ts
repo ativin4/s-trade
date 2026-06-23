@@ -3,9 +3,12 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getGeminiInsights } from '@/lib/gemini'
 import { runScreeners, type ScreenResult, type ScreenType } from '@/lib/services/screener'
-import type { AIAnalysisResponse } from '@/app/types'
+import { fetchMarketNews } from '@/lib/services/news'
+import type { AIAnalysisResponse, NewsItem } from '@/app/types'
 
-export const dynamic = 'force-dynamic'
+// ISR: serve stale, regenerate in background (no force-dynamic — keep caching on).
+export const revalidate = 3600
+export const maxDuration = 60
 
 interface ScreenerPayload {
   ideas: AIAnalysisResponse[]
@@ -73,10 +76,20 @@ export async function GET() {
       for (const s of screens) {
         ltp[s.symbol] = { price: s.price, change: s.change, changePercent: s.changePercent }
       }
+
+      const news = await fetchMarketNews(screens.map((s) => s.symbol)).catch(() => [])
+      const newsMap: Record<string, NewsItem[]> = {}
+      for (const item of news) {
+        for (const s of item.symbols) {
+          if (!newsMap[s]) newsMap[s] = []
+          newsMap[s].push(item)
+        }
+      }
+
       ideas = await getGeminiInsights(
         screens.map((s) => s.symbol),
         null,
-        { ltp }
+        { ltp, news: newsMap }
       ).catch(() => [] as AIAnalysisResponse[])
     }
 

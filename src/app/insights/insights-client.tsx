@@ -36,13 +36,15 @@ export function InsightsClient({ validAnalyses, portfolioHoldings, user, newsSum
 
   return (
     <div className="space-y-6">
-      <Tabs value={tab} onChange={(_, v) => setTab(v)} aria-label="insights tabs">
-        <Tab label="Market Ideas" />
-        <Tab label="Overview" />
-        <Tab label="Portfolio Analysis" />
-        <Tab label="Opportunities" />
-        <Tab label="News" />
-      </Tabs>
+      <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+        <Tabs value={tab} onChange={(_, v) => setTab(v)} aria-label="insights tabs">
+          <Tab label="Market Ideas" />
+          <Tab label="Overview" />
+          <Tab label="Portfolio Analysis" />
+          <Tab label="Opportunities" />
+          <Tab label="News" />
+        </Tabs>
+      </div>
 
       <TabPanel value={tab} index={0}>
         <MarketIdeasFeed />

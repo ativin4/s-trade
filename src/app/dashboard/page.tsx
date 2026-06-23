@@ -7,7 +7,7 @@ import { PinGate } from '@/components/auth/pin-gate'
 import { PortfolioOverview } from '@/components/dashboard/portfolio-overview'
 import { AIInsights } from '@/components/dashboard/ai-insights'
 import { QuickActions } from '@/components/dashboard/quick-actions'
-import { getBrokerPortfolios } from '@/lib/services/portfolio'
+import { getBrokerPortfoliosCached } from '@/lib/services/portfolio'
 import { getAIInsights } from '@/lib/services/ai'
 import { PageWrapper } from '@/components/layout/page-wrapper'
 import { DashboardSkeleton } from '@/components/dashboard/dashboard-skeleton'
@@ -117,7 +117,7 @@ async function DashboardContent() {
 }
 
 async function PortfolioLoader({ brokerAccounts }: { brokerAccounts: import('@/app/types').BrokerAccount[] }) {
-  const holdings = await getBrokerPortfolios(brokerAccounts)
+  const holdings = await getBrokerPortfoliosCached(brokerAccounts.map(a => a.id).join(','), brokerAccounts)
   return <PortfolioOverview holdings={holdings} brokerAccounts={brokerAccounts} />
 }
 
@@ -140,7 +140,7 @@ function PortfolioSkeleton() {
 }
 
 async function AIInsightsLoader({ brokerAccounts, appSettings }: { brokerAccounts: import('@/app/types').BrokerAccount[]; appSettings: ReturnType<typeof mapPrismaToAppSettings> }) {
-  const holdings = await getBrokerPortfolios(brokerAccounts).catch(() => [])
+  const holdings = await getBrokerPortfoliosCached(brokerAccounts.map(a => a.id).join(','), brokerAccounts).catch(() => [])
   const symbols  = holdings.map(h => h.symbol)
   const insights = await getAIInsights(symbols, appSettings)
   return <AIInsights insights={insights} userPreferences={appSettings} />

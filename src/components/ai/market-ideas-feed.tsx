@@ -45,6 +45,36 @@ const FILTERS: { key: FilterKey; label: string }[] = [
   { key: 'VOLUME_SURGE',      label: 'Volume' },
 ]
 
+function MarketIdeasSkeleton() {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-pulse">
+      {[1,2,3].map(i => (
+        <div key={i} className="bg-[#0f1117] border border-slate-800 rounded-xl overflow-hidden">
+          <div className="px-4 pt-4 pb-3 bg-slate-800/20 flex justify-between">
+            <div>
+              <div className="h-5 w-20 bg-slate-800 rounded mb-1.5" />
+              <div className="h-3 w-32 bg-slate-800/60 rounded" />
+            </div>
+            <div className="h-5 w-16 bg-slate-700 rounded-full" />
+          </div>
+          <div className="grid grid-cols-3 divide-x divide-slate-800/60 border-t border-slate-800/60">
+            {[1,2,3].map(j => (
+              <div key={j} className="px-3 py-2.5 text-center space-y-1.5">
+                <div className="h-2 w-8 bg-slate-800/60 rounded mx-auto" />
+                <div className="h-4 w-14 bg-slate-800 rounded mx-auto" />
+              </div>
+            ))}
+          </div>
+          <div className="px-4 py-3 space-y-2">
+            <div className="h-2 w-full bg-slate-800/50 rounded" />
+            <div className="h-2 w-2/3 bg-slate-800/40 rounded" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export function MarketIdeasFeed() {
   const [data, setData] = useState<ScreenerResponse | null>(null)
   const [loading, setLoading] = useState(true)
@@ -93,11 +123,7 @@ export function MarketIdeasFeed() {
             <div key={f.key} className="h-7 w-20 bg-slate-800 rounded-full animate-pulse" />
           ))}
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-56 bg-slate-800/60 rounded-xl animate-pulse" />
-          ))}
-        </div>
+        <MarketIdeasSkeleton />
       </div>
     )
   }

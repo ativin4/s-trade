@@ -1,4 +1,5 @@
 
+import { cache } from 'react'
 import type { BrokerAccount, PortfolioHolding } from '@/app/types'
 import { getGrowwHoldings } from '@/lib/services/groww'
 import { getFivePaisaHoldings } from '@/lib/services/5paisa'
@@ -82,6 +83,14 @@ export async function getBrokerPortfolios(
 
   return [...settled(adapterResults), ...settled(directResults)]
 }
+
+// Per-request memoized wrapper. Multiple Suspense children that need the same
+// portfolio (e.g. dashboard PortfolioLoader + AIInsightsLoader) share a single
+// broker fetch instead of hitting the broker APIs twice. `key` makes the cache
+// entry vary by account set; React's cache() dedupes within one render pass.
+export const getBrokerPortfoliosCached = cache(
+  async (_key: string, accounts: BrokerAccount[]) => getBrokerPortfolios(accounts)
+)
 
 export async function getPortfolioPerformance(holdings: PortfolioHolding[] = []): Promise<{
   totalValue: number

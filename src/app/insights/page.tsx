@@ -10,8 +10,7 @@ import { getBrokerPortfolios } from '@/lib/services/portfolio'
 import { fetchMarketNews } from '@/lib/services/news'
 import { mapPrismaToAppAccount } from '@/lib/broker'
 import { mapPrismaToAppSettings } from '@/lib/user'
-import type { AIAnalysisResponse, PortfolioHolding, TechnicalIndicators } from '@/app/types'
-import { Card, CardContent } from '@/components/ui/card'
+import type { AIAnalysisResponse, PortfolioHolding } from '@/app/types'
 
 export default async function InsightsPage() {
   const session = await getServerSession(authOptions)
@@ -90,22 +89,41 @@ async function InsightsContent({ userId }: { userId: string }) {
 
 function InsightsSkeleton() {
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {[1, 2, 3, 4].map(i => (
-          <Card key={i} className="animate-pulse">
-            <CardContent className="p-4">
-              <div className="space-y-2">
-                <div className="w-20 h-3 bg-slate-700 rounded" />
-                <div className="w-12 h-6 bg-slate-700 rounded" />
-              </div>
-            </CardContent>
-          </Card>
+    <div className="space-y-6 animate-pulse">
+      {/* Stats row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[1,2,3,4].map(i => (
+          <div key={i} className="bg-[#0f1117] border border-slate-800 rounded-xl px-5 py-4">
+            <div className="h-2 w-16 bg-slate-800 rounded mb-3" />
+            <div className="h-7 w-12 bg-slate-800 rounded" />
+          </div>
         ))}
       </div>
+      {/* Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {[1, 2, 3, 4].map(i => (
-          <div key={i} className="h-40 bg-slate-800 rounded-lg animate-pulse" />
+        {[1,2,3,4].map(i => (
+          <div key={i} className="bg-[#0f1117] border border-slate-800 rounded-xl overflow-hidden">
+            <div className="px-4 pt-4 pb-3 bg-slate-800/20">
+              <div className="flex justify-between mb-2">
+                <div className="h-5 w-20 bg-slate-800 rounded" />
+                <div className="h-5 w-16 bg-slate-700 rounded-full" />
+              </div>
+              <div className="h-3 w-40 bg-slate-800/60 rounded" />
+            </div>
+            <div className="grid grid-cols-3 divide-x divide-slate-800/60 border-t border-slate-800/60">
+              {[1,2,3].map(j => (
+                <div key={j} className="px-3 py-2.5 text-center">
+                  <div className="h-2 w-8 bg-slate-800/60 rounded mx-auto mb-2" />
+                  <div className="h-4 w-16 bg-slate-800 rounded mx-auto" />
+                </div>
+              ))}
+            </div>
+            <div className="px-4 py-3 space-y-2">
+              <div className="h-2 w-full bg-slate-800/50 rounded" />
+              <div className="h-2 w-3/4 bg-slate-800/40 rounded" />
+              <div className="h-1 w-full bg-slate-800/30 rounded-full mt-3" />
+            </div>
+          </div>
         ))}
       </div>
     </div>

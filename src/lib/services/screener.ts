@@ -6,16 +6,14 @@
 const YAHOO_UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
 
-// NIFTY 50 constituents (Yahoo expects a .NS suffix for NSE).
+// Top 25 most liquid NIFTY names (Yahoo expects a .NS suffix for NSE).
+// Trimmed from the full NIFTY 50 to keep the screener within the function
+// timeout — fewer Yahoo fetches per run.
 const NIFTY_50 = [
-  'RELIANCE', 'TCS', 'HDFCBANK', 'BHARTIARTL', 'ICICIBANK', 'INFOSYS', 'SBIN',
-  'HINDUNILVR', 'ITC', 'LT', 'KOTAKBANK', 'AXISBANK', 'BAJFINANCE', 'MARUTI',
-  'TITAN', 'ASIANPAINT', 'ULTRACEMCO', 'WIPRO', 'NTPC', 'POWERGRID', 'ONGC',
-  'HCLTECH', 'BAJAJFINSV', 'TECHM', 'SUNPHARMA', 'TATASTEEL', 'JSWSTEEL',
-  'HINDALCO', 'COALINDIA', 'INDUSINDBK', 'NESTLEIND', 'CIPLA', 'DRREDDY',
-  'DIVISLAB', 'BAJAJ-AUTO', 'HEROMOTOCO', 'EICHERMOT', 'TATACONSUM', 'BRITANNIA',
-  'APOLLOHOSP', 'ADANIPORTS', 'ADANIENT', 'BPCL', 'IOC', 'GRASIM', 'TATAMOTORS',
-  'MM', 'SBILIFE', 'HDFCLIFE', 'UPL',
+  'RELIANCE', 'TCS', 'HDFCBANK', 'ICICIBANK', 'INFOSYS', 'BHARTIARTL', 'SBIN',
+  'LT', 'HINDUNILVR', 'HCLTECH', 'AXISBANK', 'BAJFINANCE', 'KOTAKBANK', 'WIPRO',
+  'NTPC', 'ONGC', 'TATAMOTORS', 'MARUTI', 'TITAN', 'ITC', 'ADANIENT',
+  'ADANIPORTS', 'SUNPHARMA', 'TECHM', 'TATASTEEL',
 ]
 
 export type ScreenType =
@@ -53,7 +51,7 @@ async function fetchDailyBars(symbol: string): Promise<DailyBars | null> {
   )}?interval=1d&range=3mo`
   const res = await fetch(url, {
     headers: { 'User-Agent': YAHOO_UA, Accept: 'application/json' },
-    next: { revalidate: 1800 },
+    next: { revalidate: 3600 },
   }).catch(() => null)
   if (!res?.ok) return null
 
