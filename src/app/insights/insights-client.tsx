@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Tabs, Tab, TabPanel } from '@/components/ui/tabs'
 import { AIInsightCard } from '@/components/ai/ai-insight-card'
+import { MarketIdeasFeed } from '@/components/ai/market-ideas-feed'
 import { PortfolioAnalysis } from '@/components/ai/portfolio-analysis'
 import { TradingOpportunities } from '@/components/ai/trading-opportunities'
 import { NewsSummary } from '@/components/ai/news-summary'
@@ -36,6 +37,7 @@ export function InsightsClient({ validAnalyses, portfolioHoldings, user, newsSum
   return (
     <div className="space-y-6">
       <Tabs value={tab} onChange={(_, v) => setTab(v)} aria-label="insights tabs">
+        <Tab label="Market Ideas" />
         <Tab label="Overview" />
         <Tab label="Portfolio Analysis" />
         <Tab label="Opportunities" />
@@ -43,6 +45,10 @@ export function InsightsClient({ validAnalyses, portfolioHoldings, user, newsSum
       </Tabs>
 
       <TabPanel value={tab} index={0}>
+        <MarketIdeasFeed />
+      </TabPanel>
+
+      <TabPanel value={tab} index={1}>
         <div className="space-y-6">
           {/* Stat cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -83,11 +89,11 @@ export function InsightsClient({ validAnalyses, portfolioHoldings, user, newsSum
         </div>
       </TabPanel>
 
-      <TabPanel value={tab} index={1}>
+      <TabPanel value={tab} index={2}>
         <PortfolioAnalysis holdings={portfolioHoldings} analyses={validAnalyses} />
       </TabPanel>
 
-      <TabPanel value={tab} index={2}>
+      <TabPanel value={tab} index={3}>
         <TradingOpportunities
           suggestions={[]}
           budget={user.settings?.maxBudgetPerTrade || 50000}
@@ -95,7 +101,7 @@ export function InsightsClient({ validAnalyses, portfolioHoldings, user, newsSum
         />
       </TabPanel>
 
-      <TabPanel value={tab} index={3}>
+      <TabPanel value={tab} index={4}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <NewsSummary summary={newsSummary} />
           <div className="bg-[#0f1117] border border-slate-800 rounded-xl overflow-hidden">
