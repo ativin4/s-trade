@@ -6,6 +6,7 @@ import { safeDecrypt } from '@/lib/crypto'
 import { getFivePaisaHoldings } from '@/lib/services/5paisa'
 import { getGrowwHoldings } from '@/lib/services/groww'
 import { isGrowwMcp } from '@/lib/broker-constants'
+import { brokerAdapter } from '@/lib/services/broker-adapter'
 
 export async function GET() {
   const session = await getServerSession(authOptions)
@@ -45,6 +46,17 @@ export async function GET() {
     } catch (e) {
       info.status = 'error'
       info.error = (e as Error).message
+    }
+
+    try {
+      if (acc.isAdapterActive) {
+        info.adapterHoldings = await brokerAdapter.holdings(acc.brokerName.toLowerCase())
+        info.adapterHoldingsCount = info.adapterHoldings.length
+        info.adapterStatus = 'ok'
+      }
+    } catch (e) {
+      info.adapterStatus = 'error'
+      info.adapterError = (e as Error).message
     }
 
     results[acc.brokerName + '_' + acc.id.slice(-4)] = info
