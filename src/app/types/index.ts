@@ -114,6 +114,15 @@ export interface AIAnalysisResponse {
   riskLevel: RiskLevel
   keyFactors: string[]
   createdAt: Date
+  // Trade idea fields (Univest-inspired)
+  entryMin?: number
+  entryMax?: number
+  target1?: number
+  target2?: number
+  horizon?: 'INTRADAY' | 'SWING' | 'POSITIONAL' | 'LONG_TERM'
+  upside?: number       // % upside to target1
+  riskReward?: number   // e.g. 2.5 means 2.5:1
+  thesis?: string[]     // 2-3 short bullet points
 }
 
 export interface PricePoint {

@@ -18,28 +18,49 @@ export async function getGeminiInsights(
 ): Promise<AIAnalysisResponse[]> {
   const { news = {}, ltp = {}, technicals = {} } = additionalData || {}
 
-  const prompt = `You are an expert stock market analyst. Provide trading recommendations for: ${symbols.join(', ')}.
+  const prompt = `You are a SEBI-registered research analyst. Generate actionable trade ideas for NSE-listed stocks.
 
-CONTEXT DATA:
+STOCKS TO ANALYSE: ${symbols.join(', ')}
+
+MARKET DATA:
 ${symbols.map(s => {
-  const price = ltp[s]?.price ? `₹${ltp[s].price} (${ltp[s].changePercent}%)` : 'Unknown price'
-  const techData = technicals[s]
-  const tech = techData ? `\nTechnicals: RSI ${techData.rsi}, SMA20 ₹${techData.sma20}, SMA50 ₹${techData.sma50}` : ''
-  const snip = news[s]?.slice(0, 3).map(n => `- ${n.title} (${n.source})`).join('\n') || 'No recent news'
-  return `--- ${s} ---
-Price: ${price}${tech}
-News:
-${snip}`
+  const d = ltp[s]
+  const price = d ? `CMP ₹${d.price} (${d.changePercent >= 0 ? '+' : ''}${d.changePercent}% today)` : 'CMP unknown'
+  const snip  = news[s]?.slice(0, 2).map(n => `• ${n.title}`).join('\n') || 'No recent news'
+  return `${s}: ${price}\nNews: ${snip}`
 }).join('\n\n')}
 
-User preferences:
-- Risk Tolerance: ${userSettings?.riskTolerance ?? 'MODERATE'}
-- Max Budget Per Trade: ${userSettings?.maxBudgetPerTrade ?? 50000}
-- Excluded Sectors: ${userSettings?.excludedSectors?.join(', ') ?? 'none'}
-- Preferred Market Cap: ${userSettings?.preferredMarketCap ?? 'any'}
+INVESTOR PROFILE:
+- Risk tolerance: ${userSettings?.riskTolerance ?? 'MODERATE'}
+- Max trade size: ₹${(userSettings?.maxBudgetPerTrade ?? 50000).toLocaleString('en-IN')}
 
-Return ONLY a JSON array, no markdown, no extra text. Each object must have:
-symbol, recommendation (BUY|SELL|HOLD|STRONG_BUY|STRONG_SELL), confidence (0-1), reasoning (string), targetPrice (number), stopLoss (number), timeframe (e.g. "3-6 Months"), riskLevel (LOW|MEDIUM|HIGH|VERY_HIGH), keyFactors (string[]), createdAt (ISO date)`
+Return ONLY a JSON object with key "ideas" containing an array. Each idea:
+{
+  "symbol": "INFY",
+  "recommendation": "BUY",           // BUY | SELL | HOLD | STRONG_BUY | STRONG_SELL
+  "horizon": "SWING",                 // INTRADAY | SWING | POSITIONAL | LONG_TERM
+  "entryMin": 1450,                   // entry range low
+  "entryMax": 1480,                   // entry range high
+  "target1": 1580,                    // first profit target
+  "target2": 1650,                    // second target (optional, can be null)
+  "stopLoss": 1400,                   // stop loss
+  "upside": 8.5,                      // % upside to target1 from midpoint entry
+  "riskReward": 2.6,                  // (target1-entry)/(entry-stopLoss)
+  "confidence": 72,                   // 0-100
+  "riskLevel": "MEDIUM",              // LOW | MEDIUM | HIGH | VERY_HIGH
+  "timeframe": "2-4 weeks",
+  "thesis": [                         // exactly 2-3 short bullets, no fluff
+    "Breakout above 200-DMA on high volume",
+    "Q4 results beat estimates by 8%; guidance raised",
+    "RSI recovering from oversold; MACD crossover imminent"
+  ],
+  "reasoning": "one sentence summary",
+  "keyFactors": ["factor1","factor2"],
+  "targetPrice": 1580,
+  "createdAt": "${new Date().toISOString()}"
+}
+
+All prices in INR. Be specific with numbers. thesis bullets must be concise (max 10 words each).`
 
   try {
     const chat = await groq.chat.completions.create({
@@ -50,19 +71,18 @@ symbol, recommendation (BUY|SELL|HOLD|STRONG_BUY|STRONG_SELL), confidence (0-1),
       response_format: { type: 'json_object' },
     })
 
-    const text = chat.choices[0]?.message?.content ?? '[]'
-    // Groq json_object wraps array in an object — unwrap
+    const text = chat.choices[0]?.message?.content ?? '{}'
     const parsed = JSON.parse(text)
     const arr: AIAnalysisResponse[] = Array.isArray(parsed)
       ? parsed
-      : (parsed.recommendations ?? parsed.stocks ?? parsed.data ?? Object.values(parsed)[0] ?? [])
-    
+      : (parsed.ideas ?? parsed.recommendations ?? parsed.stocks ?? parsed.data ?? Object.values(parsed)[0] ?? [])
+
     return (Array.isArray(arr) ? arr : []).map(item => ({
       ...item,
-      confidence: typeof item.confidence === 'number' 
-        ? (item.confidence <= 1 ? item.confidence * 100 : item.confidence) 
+      confidence: typeof item.confidence === 'number'
+        ? (item.confidence <= 1 ? item.confidence * 100 : item.confidence)
         : 50,
-      createdAt: item.createdAt ? new Date(item.createdAt) : new Date()
+      createdAt: item.createdAt ? new Date(item.createdAt) : new Date(),
     }))
   } catch (err) {
     console.error('Groq insights error:', err)
