@@ -50,7 +50,7 @@ function generateTOTP(base32Secret: string, period = 30, digits = 6): string {
 }
 
 // ── Credential extraction ─────────────────────────────────────────────────────
-interface RawCreds {
+export interface RawCreds {
   userId: string           // TOTP login User ID (clientCode column)
   password: string         // apiSecret column
   encryptionKey: string    // feedToken column
@@ -91,7 +91,7 @@ function requestHead(requestCode: string, userKey: string, appName: string) {
   return { requestCode, key: userKey, appName, appVer: '1.0', userId: 'PQ' }
 }
 
-async function loginWithTotp(creds: RawCreds): Promise<string> {
+export async function loginWithTotp(creds: RawCreds): Promise<string> {
   if (!creds.realTotpSecret) throw new ExternalAPIError('5paisa TOTP secret not configured', '5paisa')
   if (!creds.password || !creds.encryptionKey) throw new ExternalAPIError('5paisa password/encryption key missing', '5paisa')
 
