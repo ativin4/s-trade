@@ -97,7 +97,7 @@ async function DashboardContent() {
             <BrokerIntegration brokerAccounts={brokerAccounts} />
 
             <Suspense fallback={<AIInsightsSkeleton />}>
-              <AIInsightsLoader symbols={[]} appSettings={appSettings} />
+              <AIInsightsLoader brokerAccounts={brokerAccounts} appSettings={appSettings} />
             </Suspense>
           </div>
         </div>
@@ -139,7 +139,9 @@ function PortfolioSkeleton() {
   )
 }
 
-async function AIInsightsLoader({ symbols, appSettings }: { symbols: string[]; appSettings: ReturnType<typeof mapPrismaToAppSettings> }) {
+async function AIInsightsLoader({ brokerAccounts, appSettings }: { brokerAccounts: import('@/app/types').BrokerAccount[]; appSettings: ReturnType<typeof mapPrismaToAppSettings> }) {
+  const holdings = await getBrokerPortfolios(brokerAccounts).catch(() => [])
+  const symbols  = holdings.map(h => h.symbol)
   const insights = await getAIInsights(symbols, appSettings)
   return <AIInsights insights={insights} userPreferences={appSettings} />
 }

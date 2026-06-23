@@ -2,7 +2,7 @@ import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import { authOptions, prisma } from '@/lib/auth'
-import { GeminiAIService } from '@/lib/services/gemini'
+import { getGeminiInsights } from '@/lib/gemini'
 import { PageHeader } from '@/components/layout/page-header'
 import { PageWrapper } from '@/components/layout/page-wrapper'
 import { InsightsClient } from './insights-client'
@@ -43,28 +43,24 @@ async function InsightsContent({ userId }: { userId: string }) {
   const appSettings = mapPrismaToAppSettings(prismaSettings)
   const brokerAccounts = prismaAccounts.map(mapPrismaToAppAccount)
   const portfolioHoldings: PortfolioHolding[] = await getBrokerPortfolios(brokerAccounts)
-  const news = await fetchMarketNews(portfolioHoldings.map(h => h.symbol)).catch(() => [])
+  const symbols = portfolioHoldings.map(h => h.symbol)
+  const news = await fetchMarketNews(symbols).catch(() => [])
 
-  const aiService = new GeminiAIService()
-  const [holdingAnalyses, newsSummaryRaw] = await Promise.all([
-    Promise.all(
-      portfolioHoldings.slice(0, 5).map((holding: PortfolioHolding) =>
-        aiService.analyzeStock({
-          symbol: holding.symbol,
-          currentPrice: holding.currentPrice ?? 0,
-          historicalData: [],
-          newsData: news.filter(n => n.symbols.includes(holding.symbol)),
-          technicalIndicators: undefined,
-          userSettings: appSettings ?? undefined,
-        }).catch(() => null)
-      )
-    ),
-    aiService.summarizeNews(news).catch(() => null),
+  const newsMap: Record<string, import('@/app/types').NewsItem[]> = {}
+  for (const item of news) {
+    for (const s of item.symbols) {
+      if (!newsMap[s]) newsMap[s] = []
+      newsMap[s].push(item)
+    }
+  }
+
+  const [validAnalyses] = await Promise.all([
+    symbols.length > 0
+      ? getGeminiInsights(symbols, appSettings, { news: newsMap }).catch(() => [] as AIAnalysisResponse[])
+      : Promise.resolve([] as AIAnalysisResponse[]),
   ])
-  const validAnalyses = holdingAnalyses.filter(Boolean) as AIAnalysisResponse[]
-  const newsSummary = typeof newsSummaryRaw === 'string' || newsSummaryRaw === null
-    ? { summary: '', keyPoints: [], mentionedStocks: [] }
-    : newsSummaryRaw
+
+  const newsSummary = { summary: '', keyPoints: [], mentionedStocks: symbols }
 
   const user = {
     id: prismaUser.id,

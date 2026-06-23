@@ -8,6 +8,7 @@ import { RiskManagementForm } from '@/components/setup/risk-management-form'
 import { NotificationSettings } from '@/components/setup/notification-settings'
 import { BrokerPreferences } from '@/components/setup/broker-preferences'
 import { AccountSettings } from '@/components/setup/account-settings'
+import { PinSettings } from '@/components/auth/pin-settings'
 import type { UserSettings, BrokerAccount } from '@/app/types'
 
 interface SetupClientProps {
@@ -40,6 +41,7 @@ export function SetupClient({ userId, user, userSettings, brokerAccounts }: Setu
       <Tabs value={tab} onChange={(_, v) => setTab(v)} aria-label="setup tabs">
         <Tab label="Trading" />
         <Tab label="Risk" />
+        <Tab label="Security" />
         <Tab label="OTP Setup" />
         <Tab label="Notifications" />
         <Tab label="Brokers" />
@@ -82,6 +84,12 @@ export function SetupClient({ userId, user, userSettings, brokerAccounts }: Setu
       </TabPanel>
 
       <TabPanel value={tab} index={2}>
+        <Section title="Security" subtitle="Manage your app PIN and session lock settings">
+          <PinSettings />
+        </Section>
+      </TabPanel>
+
+      <TabPanel value={tab} index={3}>
         <div className="space-y-5">
           <Section title="OTP Setup for Sell Orders" subtitle="Configure OTP handling for automated sell order execution">
             <OtpSetupForm userId={userId} initialSettings={userSettings} />
@@ -106,19 +114,19 @@ export function SetupClient({ userId, user, userSettings, brokerAccounts }: Setu
         </div>
       </TabPanel>
 
-      <TabPanel value={tab} index={3}>
+      <TabPanel value={tab} index={4}>
         <Section title="Notification Settings" subtitle="Configure alerts for trades, price movements, and AI insights">
           <NotificationSettings userId={userId} />
         </Section>
       </TabPanel>
 
-      <TabPanel value={tab} index={4}>
+      <TabPanel value={tab} index={5}>
         <Section title="Broker Preferences" subtitle="Set default broker for trades and manage connection priorities">
           <BrokerPreferences userId={userId} brokerAccounts={brokerAccounts} />
         </Section>
       </TabPanel>
 
-      <TabPanel value={tab} index={5}>
+      <TabPanel value={tab} index={6}>
         <Section title="Account Settings" subtitle="Manage your profile information and account preferences">
           <AccountSettings user={user} />
         </Section>
