@@ -155,23 +155,31 @@ export function StockChart({ symbol, interval: defaultInterval = 5, orderMarkers
   const [prevClose, setPrevClose] = useState<number | null>(null)
 
   const [aiInsight, setAiInsight] = useState<string | null>(null)
+  const [aiError, setAiError]     = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
 
   const handleAiAnalyze = async () => {
     if (!candles.length || !symbol) return
     setAiLoading(true)
     setAiInsight(null)
+    setAiError(false)
     try {
       const res = await fetch('/api/ai/analyze-chart', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ symbol, candles, interval }),
+        body: JSON.stringify({ symbol, candles: candles.slice(-50), interval }),
       })
       const data = await res.json()
-      if (data.insight) setAiInsight(data.insight)
-      else setAiInsight(data.error || 'Failed to generate analysis.')
+      if (res.ok && data.insight) {
+        setAiInsight(data.insight)
+        setAiError(false)
+      } else {
+        setAiInsight(data.error || 'Analysis unavailable — try again.')
+        setAiError(true)
+      }
     } catch {
-      setAiInsight('Error generating analysis.')
+      setAiInsight('Network error — check connection.')
+      setAiError(true)
     } finally {
       setAiLoading(false)
     }
@@ -365,9 +373,12 @@ export function StockChart({ symbol, interval: defaultInterval = 5, orderMarkers
       <OhlcBar symbol={symbol} candles={candles} loading={loading} prevClose={prevClose} />
 
       {aiInsight && (
-        <div className="px-3 py-2 bg-indigo-950/30 border-b border-slate-800 flex items-start gap-2">
-          <AutoAwesomeIcon className="text-indigo-400 mt-0.5" sx={{ fontSize: 16 }} />
-          <p className="text-xs text-indigo-200 leading-relaxed">{aiInsight}</p>
+        <div className={cn(
+          'px-3 py-2 border-b border-slate-800 flex items-start gap-2',
+          aiError ? 'bg-red-950/30' : 'bg-indigo-950/30'
+        )}>
+          <AutoAwesomeIcon className={cn('mt-0.5', aiError ? 'text-red-400' : 'text-indigo-400')} sx={{ fontSize: 16 }} />
+          <p className={cn('text-xs leading-relaxed', aiError ? 'text-red-300' : 'text-indigo-200')}>{aiInsight}</p>
         </div>
       )}
 
