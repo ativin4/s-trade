@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import { authOptions, prisma } from '@/lib/auth'
 import { AppNav } from '@/components/layout/app-nav'
+import { PinGate } from '@/components/auth/pin-gate'
 import { PortfolioOverview } from '@/components/dashboard/portfolio-overview'
 import { AIInsights } from '@/components/dashboard/ai-insights'
 import { QuickActions } from '@/components/dashboard/quick-actions'
@@ -28,12 +29,14 @@ async function getUserData(userId: string) {
 
 export default async function DashboardPage() {
   return (
-    <div className="min-h-screen bg-slate-950">
-      <AppNav />
-      <PageWrapper bare fallback={<DashboardSkeleton />}>
-        <DashboardContent />
-      </PageWrapper>
-    </div>
+    <PinGate>
+      <div className="min-h-screen bg-slate-950">
+        <AppNav />
+        <PageWrapper bare fallback={<DashboardSkeleton />}>
+          <DashboardContent />
+        </PageWrapper>
+      </div>
+    </PinGate>
   )
 }
 
