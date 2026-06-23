@@ -143,18 +143,32 @@ function tokenTtl(): number {
 }
 
 async function getToken(account: BrokerAccount, creds: RawCreds): Promise<string> {
+  // 1. In-memory cache
   const cached = _tokenCache.get(account.id)
   if (cached && cached.expiresAt > Date.now()) return cached.token
 
-  // Prefer pre-generated access token
+  // 2. Stored access token (user-supplied)
   if (creds.accessToken) {
     _tokenCache.set(account.id, { token: creds.accessToken, expiresAt: Date.now() + tokenTtl() })
     return creds.accessToken
   }
 
-  // TOTP login
+  // 3. DB-stored JWT from previous TOTP login (avoids login on every cold start)
+  const storedJwt = safeDecrypt(account.jwtToken)
+  if (storedJwt) {
+    _tokenCache.set(account.id, { token: storedJwt, expiresAt: Date.now() + tokenTtl() })
+    return storedJwt
+  }
+
+  // 4. Fresh TOTP login
   const token = await loginWithTotp(creds)
   _tokenCache.set(account.id, { token, expiresAt: Date.now() + tokenTtl() })
+  // Persist so next cold start skips login
+  try {
+    const { encrypt } = await import('@/lib/crypto')
+    const { prisma } = await import('@/lib/auth')
+    await prisma.brokerAccount.update({ where: { id: account.id }, data: { jwtToken: encrypt(token) } })
+  } catch { /* non-fatal */ }
   return token
 }
 
@@ -182,9 +196,12 @@ export async function getFivePaisaHoldings(account: BrokerAccount): Promise<Port
   const json = await res.json()
   const status = json?.head?.status ?? json?.body?.Status
   if (status !== '0' && status !== 0) {
-    // Token expired — clear cache and retry once
+    // Token likely expired — clear cache, force fresh TOTP login, retry once
     _tokenCache.delete(account.id)
-    const freshToken = await getToken(account, { ...creds, accessToken: undefined })
+    const freshCreds = { ...creds, accessToken: undefined }
+    // Skip stored JWT too so we force re-login
+    const freshToken = await loginWithTotp(freshCreds)
+    _tokenCache.set(account.id, { token: freshToken, expiresAt: Date.now() + tokenTtl() })
     const retry = await fetch(`${BASE}/Account/Holdings`, {
       method: 'POST',
       headers: fivePaisaHeaders(freshToken),
