@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { cn } from '@/lib/utils'
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'
 
 // ── types ─────────────────────────────────────────────────────────────────────
 
@@ -152,6 +153,29 @@ export function StockChart({ symbol, interval: defaultInterval = 5, orderMarkers
   )
   const [loading, setLoading]   = useState(false)
   const [prevClose, setPrevClose] = useState<number | null>(null)
+
+  const [aiInsight, setAiInsight] = useState<string | null>(null)
+  const [aiLoading, setAiLoading] = useState(false)
+
+  const handleAiAnalyze = async () => {
+    if (!candles.length || !symbol) return
+    setAiLoading(true)
+    setAiInsight(null)
+    try {
+      const res = await fetch('/api/ai/analyze-chart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ symbol, candles, interval }),
+      })
+      const data = await res.json()
+      if (data.insight) setAiInsight(data.insight)
+      else setAiInsight(data.error || 'Failed to generate analysis.')
+    } catch {
+      setAiInsight('Error generating analysis.')
+    } finally {
+      setAiLoading(false)
+    }
+  }
 
   const fetchCandles = useCallback(async (sym: string, iv: number) => {
     if (!sym) return
@@ -340,39 +364,57 @@ export function StockChart({ symbol, interval: defaultInterval = 5, orderMarkers
     <div className="flex flex-col bg-[#0f1117] border border-slate-800 rounded-lg overflow-hidden">
       <OhlcBar symbol={symbol} candles={candles} loading={loading} prevClose={prevClose} />
 
-      <div className="px-3 pt-2 pb-2 border-b border-slate-800 space-y-2">
-        <div className="flex gap-1">
-          {INTERVALS.map(iv => (
-            <button
-              key={iv.value}
-              onClick={() => setInterval(iv.value)}
-              className={cn(
-                'px-2 py-0.5 text-xs rounded transition-colors',
-                interval === iv.value
-                  ? 'bg-blue-600 text-white'
-                  : 'text-slate-500 hover:text-white hover:bg-slate-700'
-              )}
-            >
-              {iv.label}
-            </button>
-          ))}
+      {aiInsight && (
+        <div className="px-3 py-2 bg-indigo-950/30 border-b border-slate-800 flex items-start gap-2">
+          <AutoAwesomeIcon className="text-indigo-400 mt-0.5" sx={{ fontSize: 16 }} />
+          <p className="text-xs text-indigo-200 leading-relaxed">{aiInsight}</p>
         </div>
-        <div className="flex flex-wrap gap-1">
-          {INDICATORS.map(id => (
-            <button
-              key={id}
-              onClick={() => toggleIndicator(id)}
-              className={cn(
-                'px-2 py-0.5 text-[11px] rounded border transition-colors',
-                activeIndicators.has(id)
-                  ? INDICATOR_CLASSES[id]
-                  : 'border-slate-700 text-slate-600 hover:border-slate-500'
-              )}
-            >
-              {id}
-            </button>
-          ))}
+      )}
+
+      <div className="px-3 pt-2 pb-2 border-b border-slate-800 flex justify-between items-start gap-4">
+        <div className="space-y-2 flex-1">
+          <div className="flex gap-1">
+            {INTERVALS.map(iv => (
+              <button
+                key={iv.value}
+                onClick={() => setInterval(iv.value)}
+                className={cn(
+                  'px-2 py-0.5 text-xs rounded transition-colors',
+                  interval === iv.value
+                    ? 'bg-blue-600 text-white'
+                    : 'text-slate-500 hover:text-white hover:bg-slate-700'
+                )}
+              >
+                {iv.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {INDICATORS.map(id => (
+              <button
+                key={id}
+                onClick={() => toggleIndicator(id)}
+                className={cn(
+                  'px-2 py-0.5 text-[11px] rounded border transition-colors',
+                  activeIndicators.has(id)
+                    ? INDICATOR_CLASSES[id]
+                    : 'border-slate-700 text-slate-600 hover:border-slate-500'
+                )}
+              >
+                {id}
+              </button>
+            ))}
+          </div>
         </div>
+
+        <button
+          onClick={handleAiAnalyze}
+          disabled={aiLoading || !candles.length}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-indigo-600/20 text-indigo-400 hover:bg-indigo-600/40 hover:text-indigo-300 border border-indigo-500/30 transition-colors disabled:opacity-50 text-xs font-semibold whitespace-nowrap mt-1"
+        >
+          {aiLoading ? <span className="animate-spin text-lg leading-none">↻</span> : <AutoAwesomeIcon sx={{ fontSize: 14 }} />}
+          {aiLoading ? 'Analyzing...' : 'AI Analyze'}
+        </button>
       </div>
 
       <div className="p-2 flex-1 min-w-0">
