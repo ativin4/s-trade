@@ -25,7 +25,7 @@ type FormValues = {
 }
 
 type ExtraField = { name: 'totpSecret' | 'jwtToken' | 'feedToken' | `extra.${keyof ExtraCreds}`; label: string; hint?: string; tooltip?: string }
-type BrokerConfig = { clientCodeLabel: string; apiSecretRequired?: boolean; extraFields?: ExtraField[]; extraFieldsAlt?: ExtraField[]; altModeLabel?: string }
+type BrokerConfig = { clientCodeLabel: string; apiSecretRequired?: boolean; apiSecretLabel?: string; apiSecretHint?: string; extraFields?: ExtraField[]; extraFieldsAlt?: ExtraField[]; altModeLabel?: string }
 
 // App-level credentials shared by both 5paisa login modes
 const FIVEPAISA_APP_FIELDS: ExtraField[] = [
@@ -54,6 +54,8 @@ const BROKER_CONFIG: Partial<Record<BrokerName, BrokerConfig>> = {
   zerodha:   { clientCodeLabel: 'API Key' },
   '5paisa':  {
     clientCodeLabel: 'User ID',
+    apiSecretLabel: 'Password',
+    apiSecretHint: 'Your regular 5paisa login password',
     altModeLabel: 'Access Token',
     extraFields: [
       ...FIVEPAISA_APP_FIELDS,
@@ -249,7 +251,7 @@ export function AddBrokerDialog({ brokerName, connectionType = 'api', children }
                   })}
 
                   {showApiSecret && (
-                    <Field label="API Secret" error={errors.apiSecret?.message}>
+                    <Field label={cfg.apiSecretLabel ?? "API Secret"} error={errors.apiSecret?.message} hint={cfg.apiSecretHint}>
                       <input
                         type="password"
                         className={inputCls}
