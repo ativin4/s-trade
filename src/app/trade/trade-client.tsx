@@ -16,6 +16,7 @@ interface TradeClientProps {
   brokerAccounts: BrokerAccount[]
   recentTrades: (Trade & { brokerAccount: { brokerName: string } })[]
   userSettings: UserSettings | null
+  initialSymbol?: string
 }
 
 type BottomTab = 'history' | 'positions' | 'orders'
@@ -33,8 +34,8 @@ const TRADE_STATUS_CLASSES: Record<string, string> = {
   REJECTED:  'bg-red-900/60 text-red-400',
 }
 
-export function TradeClient({ userId, brokerAccounts, recentTrades, userSettings }: TradeClientProps) {
-  const [activeSymbol, setActiveSymbol] = useState('RELIANCE')
+export function TradeClient({ userId, brokerAccounts, recentTrades, userSettings, initialSymbol }: TradeClientProps) {
+  const [activeSymbol, setActiveSymbol] = useState(initialSymbol || 'RELIANCE')
   const [activeLtp, setActiveLtp]       = useState<number | undefined>()
   const [activeSide, setActiveSide]     = useState<'BUY' | 'SELL'>('BUY')
   const [bottomTab, setBottomTab]       = useState<BottomTab>('history')

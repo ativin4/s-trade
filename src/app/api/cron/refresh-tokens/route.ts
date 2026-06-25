@@ -47,7 +47,8 @@ export async function GET(req: NextRequest) {
         encryptionKey:  safeDecrypt(acc.feedToken)  ?? '',
         source:         safeDecrypt(acc.jwtToken)   ?? '',
       })
-      await prisma.brokerAccount.update({ where: { id: acc.id }, data: { jwtToken: encrypt(token) } })
+      extra.accessToken = token
+      await prisma.brokerAccount.update({ where: { id: acc.id }, data: { extraCredentials: encrypt(JSON.stringify(extra)) } })
       return `5paisa:${acc.id.slice(-4)} ok`
     }
 

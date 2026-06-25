@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import type { PortfolioHolding, BrokerAccount } from '@/app/types'
 import { cn } from '@/lib/utils'
 import { fmtINR, fmtChangeINR } from '@/lib/format'
@@ -13,6 +14,7 @@ interface Props {
 const TABLE_COLS = ['Symbol', 'Qty', 'Avg', 'LTP', 'Day Chg', 'Value', 'P&L', 'Broker'] as const
 
 export function PortfolioOverview({ holdings, brokerAccounts }: Props) {
+  const router = useRouter()
   const [activeBroker, setActiveBroker] = useState<string | null>(null)
 
   const brokerMap = Object.fromEntries(brokerAccounts.map(a => [a.id, a.brokerName]))
@@ -98,7 +100,7 @@ export function PortfolioOverview({ holdings, brokerAccounts }: Props) {
               const up = h.gainLoss >= 0
               const dayUp = h.changePercent >= 0
               return (
-                <div key={`${h.brokerAccountId}-${h.symbol}`} className="flex items-center px-4 py-3 gap-3 active:bg-slate-800/40">
+                <div key={`${h.brokerAccountId}-${h.symbol}`} className="flex items-center px-4 py-3 gap-3 active:bg-slate-800/40 cursor-pointer" onClick={() => router.push(`/trade?symbol=${h.symbol}`)}>
                   {/* Left: symbol + meta */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
@@ -150,7 +152,7 @@ export function PortfolioOverview({ holdings, brokerAccounts }: Props) {
                   const broker = brokerMap[h.brokerAccountId] ?? '—'
                   const dayUp  = h.change >= 0
                   return (
-                    <tr key={`${h.brokerAccountId}-${h.symbol}`} className="hover:bg-slate-800/30 transition-colors">
+                    <tr key={`${h.brokerAccountId}-${h.symbol}`} className="hover:bg-slate-800/30 transition-colors cursor-pointer" onClick={() => router.push(`/trade?symbol=${h.symbol}`)}>
                       <td className="px-4 py-3 sticky left-0 bg-[#0f1117]">
                         <p className="font-semibold text-white">{h.symbol}</p>
                         <p className="text-[11px] text-slate-600">{h.name !== h.symbol ? h.name : ''}</p>

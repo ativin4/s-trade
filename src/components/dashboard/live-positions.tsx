@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { fmtINR, fmtChangeINR } from '@/lib/format'
 import { PRODUCT, PRODUCT_LABEL } from '@/lib/broker-constants'
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export function LivePositions({ initialPositions = [] }: Props) {
+  const router = useRouter()
   const [positions, setPositions] = useState<PositionEntry[]>(initialPositions)
 
   useEffect(() => {
@@ -81,7 +83,7 @@ export function LivePositions({ initialPositions = [] }: Props) {
             {rows.map((pos, i) => {
               const up = (pos.unrealisedPnl ?? 0) >= 0
               return (
-                <div key={i} className="flex items-center px-4 py-3 gap-3 active:bg-slate-800/40">
+                <div key={i} className="flex items-center px-4 py-3 gap-3 active:bg-slate-800/40 cursor-pointer" onClick={() => router.push(`/trade?symbol=${pos.symbol}`)}>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-slate-200 text-[13px]">{pos.symbol}</span>
@@ -117,7 +119,7 @@ export function LivePositions({ initialPositions = [] }: Props) {
               {rows.map((pos, i) => {
                 const up = (pos.unrealisedPnl ?? 0) >= 0
                 return (
-                  <tr key={i} className="hover:bg-slate-800/30 transition-colors">
+                  <tr key={i} className="hover:bg-slate-800/30 transition-colors cursor-pointer" onClick={() => router.push(`/trade?symbol=${pos.symbol}`)}>
                     <td className="px-5 py-2.5 font-semibold text-slate-200">{pos.symbol}</td>
                     <td className="px-5 py-2.5">
                       <span className={cn('text-[10px] font-bold px-1.5 py-0.5 rounded', pos.side === 'BUY' ? 'bg-emerald-900/50 text-emerald-400' : 'bg-red-900/50 text-red-400')}>

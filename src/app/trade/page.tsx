@@ -11,7 +11,8 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import type { Trade } from '@/app/types'
 
-export default async function TradePage() {
+export default async function TradePage(props: { searchParams: Promise<{ symbol?: string }> }) {
+  const searchParams = await props.searchParams
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) redirect('/')
 
@@ -21,13 +22,13 @@ export default async function TradePage() {
         <MarketStatusBadge />
       </PageHeader>
       <Suspense fallback={<TradingSkeleton />}>
-        <TradingContent userId={session.user.id} />
+        <TradingContent userId={session.user.id} symbol={searchParams?.symbol} />
       </Suspense>
     </PageWrapper>
   )
 }
 
-async function TradingContent({ userId }: { userId: string }) {
+async function TradingContent({ userId, symbol }: { userId: string; symbol?: string }) {
   try {
     const [prismaAccounts, prismaSettings, recentTrades] = await Promise.all([
       prisma.brokerAccount.findMany({ where: { userId, isActive: true } }),
@@ -49,6 +50,7 @@ async function TradingContent({ userId }: { userId: string }) {
         brokerAccounts={brokerAccounts}
         recentTrades={recentTrades as (Trade & { brokerAccount: { brokerName: string } })[]}
         userSettings={userSettings}
+        initialSymbol={symbol}
       />
     )
   } catch (err) {
