@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import type { BrokerAccount, BrokerName } from '@/app/types'
 import { BROKER_META } from '@/components/brokers/broker-connection-card'
 import { AddBrokerDialog } from '@/components/brokers/add-broker-dialog'
+import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { isGrowwMcp } from '@/lib/broker-constants'
 
@@ -75,7 +76,7 @@ export function BrokerIntegration({ brokerAccounts }: BrokerIntegrationProps) {
             const meta  = BROKER_META[acc.brokerName]
             const isMcp = isGrowwMcp(acc)
             return (
-              <div key={acc.id} className="flex items-center gap-3 px-4 py-3">
+              <Link key={acc.id} href="/brokers" className="flex items-center gap-3 px-4 py-3 hover:bg-slate-800/30 transition-colors">
                 <div className="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0">
                   {meta?.logo ?? <FallbackLogo name={acc.brokerName} />}
                 </div>
@@ -87,7 +88,7 @@ export function BrokerIntegration({ brokerAccounts }: BrokerIntegrationProps) {
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   <span className="text-[11px] font-medium text-emerald-400">Live</span>
                 </span>
-              </div>
+              </Link>
             )
           })}
         </div>
