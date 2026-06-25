@@ -66,8 +66,14 @@ async function TradingContent({ userId, symbol }: { userId: string; symbol?: str
 
 function MarketStatusBadge() {
   const now = new Date()
-  const t = now.getHours() * 60 + now.getMinutes()
-  const isOpen = t >= 9 * 60 + 15 && t <= 15 * 60 + 30
+  const istDate = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }))
+  
+  const day = istDate.getDay()
+  const isWeekend = day === 0 || day === 6
+  const t = istDate.getHours() * 60 + istDate.getMinutes()
+  
+  const isOpen = !isWeekend && t >= 9 * 60 + 15 && t <= 15 * 60 + 30
+  
   return <Badge variant={isOpen ? 'default' : 'secondary'} label={isOpen ? 'Market Open' : 'Market Closed'} />
 }
 
