@@ -15,6 +15,20 @@ interface Props {
 export function LivePositions({ initialPositions = [] }: Props) {
   const router = useRouter()
   const [positions, setPositions] = useState<PositionEntry[]>(initialPositions)
+  
+  type SortField = 'Symbol' | 'Side' | 'Qty' | 'Avg' | 'LTP' | 'P&L' | 'Broker'
+  const [sortField, setSortField] = useState<SortField | null>(null)
+  const [sortAsc, setSortAsc] = useState(true)
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      if (sortAsc) setSortAsc(false)
+      else setSortField(null)
+    } else {
+      setSortField(field)
+      setSortAsc(true)
+    }
+  }
 
   useEffect(() => {
     let skipFirst = initialPositions.length > 0
@@ -102,21 +116,42 @@ export function LivePositions({ initialPositions = [] }: Props) {
             })}
           </div>
 
-          {/* Desktop: table */}
           <table className="hidden md:table w-full text-[12px]">
             <thead>
               <tr className="text-[10px] text-slate-500 uppercase tracking-wider border-b border-slate-800/30">
-                <th className="text-left px-5 py-2">Symbol</th>
-                <th className="text-left px-5 py-2">Side</th>
-                <th className="text-right px-5 py-2">Qty</th>
-                <th className="text-right px-5 py-2">Avg</th>
-                <th className="text-right px-5 py-2">LTP</th>
-                <th className="text-right px-5 py-2">P&L</th>
-                <th className="text-left px-5 py-2">Broker</th>
+                {(['Symbol', 'Side', 'Qty', 'Avg', 'LTP', 'P&L', 'Broker'] as const).map(h => (
+                  <th 
+                    key={h}
+                    onClick={() => handleSort(h)}
+                    className={cn("px-5 py-2 cursor-pointer hover:text-slate-300 select-none group", 
+                      ['Qty', 'Avg', 'LTP', 'P&L'].includes(h) ? "text-right" : "text-left"
+                    )}
+                  >
+                    <div className={cn("flex items-center gap-1", ['Qty', 'Avg', 'LTP', 'P&L'].includes(h) && "justify-end")}>
+                      {h}
+                      <span className={cn("text-[9px] transition-opacity", sortField === h ? "opacity-100 text-white" : "opacity-0 group-hover:opacity-50")}>
+                        {sortField === h && !sortAsc ? '▼' : '▲'}
+                      </span>
+                    </div>
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/25">
-              {rows.map((pos, i) => {
+              {[...rows].sort((a, b) => {
+                if (!sortField) return 0
+                let diff = 0
+                switch (sortField) {
+                  case 'Symbol': diff = a.symbol.localeCompare(b.symbol); break;
+                  case 'Side': diff = a.side.localeCompare(b.side); break;
+                  case 'Qty': diff = a.qty - b.qty; break;
+                  case 'Avg': diff = a.avgPrice - b.avgPrice; break;
+                  case 'LTP': diff = a.ltp - b.ltp; break;
+                  case 'P&L': diff = (a.unrealisedPnl ?? 0) - (b.unrealisedPnl ?? 0); break;
+                  case 'Broker': diff = a.broker.localeCompare(b.broker); break;
+                }
+                return sortAsc ? diff : -diff
+              }).map((pos, i) => {
                 const up = (pos.unrealisedPnl ?? 0) >= 0
                 return (
                   <tr key={i} className="hover:bg-slate-800/30 transition-colors cursor-pointer" onClick={() => router.push(`/trade?symbol=${pos.symbol}`)}>

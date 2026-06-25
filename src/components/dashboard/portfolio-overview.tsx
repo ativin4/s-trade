@@ -23,6 +23,36 @@ export function PortfolioOverview({ holdings, brokerAccounts }: Props) {
     ? holdings.filter(h => brokerMap[h.brokerAccountId] === activeBroker)
     : holdings
 
+  type SortField = typeof TABLE_COLS[number]
+  const [sortField, setSortField] = useState<SortField | null>(null)
+  const [sortAsc, setSortAsc] = useState(true)
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      if (sortAsc) setSortAsc(false)
+      else setSortField(null)
+    } else {
+      setSortField(field)
+      setSortAsc(true)
+    }
+  }
+
+  const sortedHoldings = [...visible].sort((a, b) => {
+    if (!sortField) return 0
+    let diff = 0
+    switch (sortField) {
+      case 'Symbol': diff = a.symbol.localeCompare(b.symbol); break;
+      case 'Qty': diff = a.quantity - b.quantity; break;
+      case 'Avg': diff = a.avgPrice - b.avgPrice; break;
+      case 'LTP': diff = a.currentPrice - b.currentPrice; break;
+      case 'Day Chg': diff = (a.change * a.quantity) - (b.change * b.quantity); break;
+      case 'Value': diff = a.marketValue - b.marketValue; break;
+      case 'P&L': diff = a.gainLoss - b.gainLoss; break;
+      case 'Broker': diff = (brokerMap[a.brokerAccountId] || '').localeCompare(brokerMap[b.brokerAccountId] || ''); break;
+    }
+    return sortAsc ? diff : -diff
+  })
+
   const { totalValue, totalDailyChange, totalGainLoss } = visible.reduce(
     (acc, h) => ({
       totalValue:       acc.totalValue       + h.marketValue,
@@ -137,18 +167,24 @@ export function PortfolioOverview({ holdings, brokerAccounts }: Props) {
                   {TABLE_COLS.map((h, i) => (
                     <th
                       key={h}
+                      onClick={() => handleSort(h)}
                       className={cn(
-                        'px-4 py-2.5 text-left text-[11px] font-bold text-slate-600 uppercase tracking-widest',
+                        'px-4 py-2.5 text-left text-[11px] font-bold text-slate-600 uppercase tracking-widest cursor-pointer hover:text-slate-400 select-none group',
                         i === 0 && 'sticky left-0 bg-[#0f1117]'
                       )}
                     >
-                      {h}
+                      <div className="flex items-center gap-1">
+                        {h}
+                        <span className={cn("text-[10px] transition-opacity", sortField === h ? "opacity-100 text-white" : "opacity-0 group-hover:opacity-50")}>
+                          {sortField === h && !sortAsc ? '▼' : '▲'}
+                        </span>
+                      </div>
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/50">
-                {visible.map(h => {
+                {sortedHoldings.map(h => {
                   const broker = brokerMap[h.brokerAccountId] ?? '—'
                   const dayUp  = h.change >= 0
                   return (
