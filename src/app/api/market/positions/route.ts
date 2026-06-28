@@ -15,6 +15,7 @@ export interface PositionEntry {
   broker: string
   realisedPnl: number
   unrealisedPnl: number
+  mtfInterest?: number
   paper?: boolean
 }
 

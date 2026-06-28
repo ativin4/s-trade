@@ -12,6 +12,12 @@ interface Props {
   initialPositions?: PositionEntry[]
 }
 
+// Net unrealised P&L = price movement minus MTF interest (MTF positions only)
+function netUnrealised(p: PositionEntry): number {
+  const unrealised = p.unrealisedPnl ?? 0
+  return p.product === 'MTF' ? unrealised - (p.mtfInterest ?? 0) : unrealised
+}
+
 export function LivePositions({ initialPositions = [] }: Props) {
   const router = useRouter()
   const [positions, setPositions] = useState<PositionEntry[]>(initialPositions)
@@ -55,7 +61,8 @@ export function LivePositions({ initialPositions = [] }: Props) {
 
   if (open.length === 0 && closed.length === 0) return null
 
-  const unrealisedTotal = open.reduce((s, p)   => s + (p.unrealisedPnl ?? 0), 0)
+  // Net M2M = price movement minus MTF interest charges
+  const unrealisedTotal = open.reduce((s, p)   => s + (p.unrealisedPnl ?? 0) - (p.mtfInterest ?? 0), 0)
   const realisedTotal   = closed.reduce((s, p) => s + p.realisedPnl, 0)
 
   // Group open positions by product type
@@ -95,7 +102,10 @@ export function LivePositions({ initialPositions = [] }: Props) {
           {/* Mobile: compact rows */}
           <div className="md:hidden divide-y divide-slate-800/25">
             {rows.map((pos, i) => {
-              const up = (pos.unrealisedPnl ?? 0) >= 0
+              const mtfInterest = pos.mtfInterest ?? 0
+              const isMtf       = pos.product === 'MTF'
+              const netUnreal   = isMtf ? (pos.unrealisedPnl ?? 0) - mtfInterest : (pos.unrealisedPnl ?? 0)
+              const up = netUnreal >= 0
               return (
                 <div key={i} className="flex items-center px-4 py-3 gap-3 active:bg-slate-800/40 cursor-pointer" onClick={() => router.push(`/trade?symbol=${pos.symbol}`)}>
                   <div className="flex-1 min-w-0">
@@ -108,8 +118,11 @@ export function LivePositions({ initialPositions = [] }: Props) {
                   <div className="text-right flex-shrink-0">
                     <p className="text-[13px] font-bold text-white tabular-nums">{fmtINR(pos.ltp)}</p>
                     <p className={cn('text-[12px] font-semibold tabular-nums', up ? 'text-emerald-400' : 'text-red-400')}>
-                      {fmtChangeINR(pos.unrealisedPnl ?? 0)}
+                      {fmtChangeINR(netUnreal)}
                     </p>
+                    {isMtf && mtfInterest > 0 && (
+                      <p className="text-[10px] text-red-400/80 tabular-nums">MTF int: ₹{mtfInterest.toFixed(0)}</p>
+                    )}
                   </div>
                 </div>
               )
@@ -147,12 +160,15 @@ export function LivePositions({ initialPositions = [] }: Props) {
                   case 'Qty': diff = a.qty - b.qty; break;
                   case 'Avg': diff = a.avgPrice - b.avgPrice; break;
                   case 'LTP': diff = a.ltp - b.ltp; break;
-                  case 'P&L': diff = (a.unrealisedPnl ?? 0) - (b.unrealisedPnl ?? 0); break;
+                  case 'P&L': diff = netUnrealised(a) - netUnrealised(b); break;
                   case 'Broker': diff = a.broker.localeCompare(b.broker); break;
                 }
                 return sortAsc ? diff : -diff
               }).map((pos, i) => {
-                const up = (pos.unrealisedPnl ?? 0) >= 0
+                const mtfInterest = pos.mtfInterest ?? 0
+                const isMtf       = pos.product === 'MTF'
+                const netUnreal   = netUnrealised(pos)
+                const up = netUnreal >= 0
                 return (
                   <tr key={i} className="hover:bg-slate-800/30 transition-colors cursor-pointer" onClick={() => router.push(`/trade?symbol=${pos.symbol}`)}>
                     <td className="px-5 py-2.5 font-semibold text-slate-200">{pos.symbol}</td>
@@ -165,7 +181,10 @@ export function LivePositions({ initialPositions = [] }: Props) {
                     <td className="px-5 py-2.5 text-right text-slate-500 tabular-nums">{fmtINR(pos.avgPrice)}</td>
                     <td className="px-5 py-2.5 text-right text-white tabular-nums font-medium">{fmtINR(pos.ltp)}</td>
                     <td className={cn('px-5 py-2.5 text-right tabular-nums font-semibold', up ? 'text-emerald-400' : 'text-red-400')}>
-                      {fmtChangeINR(pos.unrealisedPnl ?? 0)}
+                      {fmtChangeINR(netUnreal)}
+                      {isMtf && mtfInterest > 0 && (
+                        <span className="block text-[10px] font-normal text-red-400/80">MTF int: ₹{mtfInterest.toFixed(0)}</span>
+                      )}
                     </td>
                     <td className="px-5 py-2.5 text-slate-600 capitalize text-[11px]">{pos.broker}</td>
                   </tr>

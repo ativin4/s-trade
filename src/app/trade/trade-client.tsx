@@ -94,7 +94,8 @@ export function TradeClient({ userId, brokerAccounts, recentTrades, userSettings
 
   const openPositions   = positions.filter(p => p.qty > 0)
   const closedPositions = positions.filter(p => p.qty === 0 && p.realisedPnl !== 0)
-  const unrealisedTotal = openPositions.reduce((s, p)   => s + (p.unrealisedPnl ?? 0), 0)
+  // Net M2M = price movement minus MTF interest charges
+  const unrealisedTotal = openPositions.reduce((s, p)   => s + (p.unrealisedPnl ?? 0) - (p.mtfInterest ?? 0), 0)
   const realisedTotal   = closedPositions.reduce((s, p) => s + p.realisedPnl, 0)
   const totalPnl        = unrealisedTotal + realisedTotal
   const totalPnlUp      = totalPnl >= 0
@@ -245,9 +246,13 @@ export function TradeClient({ userId, brokerAccounts, recentTrades, userSettings
                 </thead>
                 <tbody>
                   {positions.map((pos, i) => {
-                    const unrealised = pos.unrealisedPnl ?? 0
-                    const realised   = pos.realisedPnl ?? 0
-                    const isOpen     = pos.qty > 0
+                    const unrealised  = pos.unrealisedPnl ?? 0
+                    const realised    = pos.realisedPnl ?? 0
+                    const isOpen      = pos.qty > 0
+                    const mtfInterest = pos.mtfInterest ?? 0
+                    const isMtf       = pos.product === 'MTF'
+                    // For MTF, net P&L = price movement minus interest charges
+                    const netUnreal   = isMtf ? unrealised - mtfInterest : unrealised
                     return (
                       <tr
                         key={i}
@@ -266,8 +271,17 @@ export function TradeClient({ userId, brokerAccounts, recentTrades, userSettings
                         <td className="px-3 py-1.5 text-right text-slate-300 tabular-nums">{pos.qty}</td>
                         <td className="px-3 py-1.5 text-right text-slate-400 tabular-nums">{fmtINR(pos.avgPrice)}</td>
                         <td className="px-3 py-1.5 text-right text-slate-200 tabular-nums font-medium">{pos.ltp > 0 ? fmtINR(pos.ltp) : '—'}</td>
-                        <td className={cn('px-3 py-1.5 text-right tabular-nums font-semibold', unrealised >= 0 ? 'text-emerald-400' : 'text-red-400')}>
-                          {isOpen ? fmtChangeINR(unrealised) : '—'}
+                        <td className={cn('px-3 py-1.5 text-right tabular-nums font-semibold', netUnreal >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+                          {isOpen ? (
+                            <>
+                              {fmtChangeINR(netUnreal)}
+                              {isMtf && mtfInterest > 0 && (
+                                <span className="block text-[10px] font-normal text-red-400/80">
+                                  MTF int: ₹{mtfInterest.toFixed(0)}
+                                </span>
+                              )}
+                            </>
+                          ) : '—'}
                         </td>
                         <td className={cn('px-3 py-1.5 text-right tabular-nums font-semibold', realised >= 0 ? 'text-emerald-400' : 'text-red-400')}>
                           {realised !== 0 ? fmtChangeINR(realised) : '—'}
