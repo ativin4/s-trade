@@ -36,19 +36,30 @@ export async function GET(req: NextRequest) {
       const rawExtra = safeDecrypt(acc.extraCredentials)
       if (!rawExtra) return `5paisa:${acc.id.slice(-4)} skip (no creds)`
       const extra = JSON.parse(rawExtra) as Record<string, string>
+      // extra.source holds the original API source ID; fall back to jwtToken column
+      // only if source was never stored in extraCredentials (legacy accounts)
+      const sourceVal = extra.source || safeDecrypt(acc.jwtToken) || ''
       const token = await loginWithTotp({
         userKey:        extra.userKey        ?? '',
         realClientCode: extra.realClientCode ?? '',
         realTotpSecret: extra.realTotpSecret,
-        accessToken:    extra.accessToken,
+        accessToken:    undefined, // force fresh login
         appName:        safeDecrypt(acc.totpSecret) ?? '',
         userId:         safeDecrypt(acc.clientCode) ?? '',
         password:       safeDecrypt(acc.apiSecret)  ?? '',
         encryptionKey:  safeDecrypt(acc.feedToken)  ?? '',
-        source:         safeDecrypt(acc.jwtToken)   ?? '',
+        source:         sourceVal,
       })
+      // Preserve source in extraCredentials so jwtToken column stays available for the JWT
       extra.accessToken = token
-      await prisma.brokerAccount.update({ where: { id: acc.id }, data: { extraCredentials: encrypt(JSON.stringify(extra)) } })
+      if (!extra.source && sourceVal) extra.source = sourceVal
+      await prisma.brokerAccount.update({
+        where: { id: acc.id },
+        data: {
+          extraCredentials: encrypt(JSON.stringify(extra)),
+          jwtToken: encrypt(token), // also write to jwtToken so getToken() step-3 finds it on cold start
+        },
+      })
       return `5paisa:${acc.id.slice(-4)} ok`
     }
 

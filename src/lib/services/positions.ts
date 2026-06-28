@@ -54,17 +54,34 @@ export async function fetchPositions(userId: string): Promise<PositionEntry[]> {
       if (account.brokerName === '5paisa') return getFivePaisaPositions(account)
       if (account.brokerName !== 'groww' || isGrowwMcp(account)) return []
       const data = await getGrowwPositions(account)
-      const raw: any[] = data?.data || data?.positions || []
-      return raw.map(p => normalise({
-        symbol:       p.trading_symbol || p.symbol || '',
-        qty:          p.quantity || 0,
-        avgPrice:     p.average_price || 0,
-        ltp:          p.ltp || 0,
-        realisedPnl:  p.realised_pnl || p.realized_pnl || 0,
-        unrealisedPnl: p.pnl || p.unrealized_pnl || 0,
-        product:      p.product || 'MIS',
-        side:         (p.quantity || 0) >= 0 ? 'BUY' : 'SELL',
-      }, acc.brokerName))
+      // Groww v1 API nests under payload[], data[], data.positions[], or positions[]
+      const raw: any[] = (
+        data?.payload ??
+        (Array.isArray(data?.data) ? data.data : null) ??
+        data?.data?.positions ??
+        data?.positions ??
+        []
+      )
+      return raw.map(p => {
+        // API returns camelCase; some older versions used snake_case — handle both
+        const sym     = p.tradingSymbol  || p.trading_symbol  || p.symbol || ''
+        const qty     = p.netQuantity    ?? p.quantity         ?? 0
+        const avg     = p.averagePrice   ?? p.average_price    ?? 0
+        const ltp     = p.lastPrice      ?? p.ltp              ?? 0
+        const realPnl = p.realizedPnl    ?? p.realised_pnl     ?? p.realized_pnl   ?? 0
+        const unreal  = p.unrealizedPnl  ?? p.unrealisedPnl    ?? p.unrealized_pnl ?? p.pnl ?? 0
+        const product = p.product || 'MIS'
+        return normalise({
+          symbol:        sym,
+          qty:           Math.abs(qty),
+          avgPrice:      avg,
+          ltp,
+          realisedPnl:   realPnl,
+          unrealisedPnl: unreal,
+          product,
+          side:          qty >= 0 ? 'BUY' : 'SELL',
+        }, acc.brokerName)
+      })
     })
   )
 
