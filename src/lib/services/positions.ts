@@ -3,6 +3,7 @@ import { mapPrismaToAppAccount, isGrowwMcp } from '@/lib/broker'
 import { brokerAdapter } from '@/lib/services/broker-adapter'
 import { getGrowwPositions } from '@/lib/services/groww'
 import { getFivePaisaPositions } from '@/lib/services/5paisa'
+import { fetchLtp, resolveGrowwToken } from '@/lib/services/market-ltp'
 import type { PositionEntry } from '@/app/api/market/positions/route'
 
 function normalise(p: {
@@ -60,7 +61,23 @@ export async function fetchPositions(userId: string): Promise<PositionEntry[]> {
           })
         })
       )
-      const merged = results.flatMap(r => r.status === 'fulfilled' ? r.value : [])
+      let merged = results.flatMap(r => r.status === 'fulfilled' ? r.value : [])
+      // Backfill LTP from market data when adapter returns zeros (e.g. after-hours or expired token)
+      const zeroLtp = merged.filter(p => p.ltp === 0).map(p => p.symbol)
+      if (zeroLtp.length > 0 && merged.length > 0) {
+        const firstAccount = synced[0]!
+        const growwToken = await resolveGrowwToken(firstAccount.userId).catch(() => null)
+        const ltpMap: Record<string, { price: number }> = await fetchLtp(zeroLtp, 'NSE', growwToken).catch(() => ({}))
+        merged = merged.map(p => {
+          const mkt = ltpMap[p.symbol]
+          if (!mkt || p.ltp !== 0) return p
+          const ltp     = mkt.price
+          const unreal  = p.avgPrice > 0 ? (ltp - p.avgPrice) * p.qty : p.unrealisedPnl
+          const pnl     = p.realisedPnl + unreal
+          const pnlPct  = p.avgPrice > 0 && p.qty > 0 ? (unreal / (p.avgPrice * p.qty)) * 100 : 0
+          return { ...p, ltp, pnl, pnlPercent: pnlPct, unrealisedPnl: unreal }
+        })
+      }
       if (merged.length > 0) return merged
     }
   }
