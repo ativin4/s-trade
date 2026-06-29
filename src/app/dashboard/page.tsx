@@ -13,7 +13,6 @@ import { PageWrapper } from '@/components/layout/page-wrapper'
 import { DashboardSkeleton } from '@/components/dashboard/dashboard-skeleton'
 import { RecentActivity } from '@/app/dashboard/recent-activity'
 import { BrokerIntegration } from '@/components/dashboard/broker-integration'
-import { LivePositions } from '@/components/dashboard/live-positions'
 import { getBrokerAccounts } from '@/lib/broker'
 import { mapPrismaToAppSettings } from '@/lib/user'
 
@@ -75,9 +74,6 @@ async function DashboardContent() {
             <Suspense fallback={<PortfolioSkeleton />}>
               <PortfolioLoader brokerAccounts={brokerAccounts} />
             </Suspense>
-
-            {/* Live positions — client polls independently */}
-            <LivePositions initialPositions={[]} />
 
             {/* Recent activity */}
             <div className="bg-[#0f1117] border border-slate-800 rounded-xl overflow-hidden">

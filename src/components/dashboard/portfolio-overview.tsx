@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import type { PortfolioHolding, BrokerAccount } from '@/app/types'
 import { cn } from '@/lib/utils'
 import { fmtINR, fmtChangeINR } from '@/lib/format'
+import { LivePositions } from '@/components/dashboard/live-positions'
 
 interface Props {
   holdings: PortfolioHolding[]
@@ -16,6 +17,7 @@ const TABLE_COLS = ['Symbol', 'Qty', 'Avg', 'LTP', 'Day Chg', 'Value', 'P&L', 'B
 export function PortfolioOverview({ holdings, brokerAccounts }: Props) {
   const router = useRouter()
   const [activeBroker, setActiveBroker] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<'holdings' | 'positions'>('holdings')
 
   const brokerMap = Object.fromEntries(brokerAccounts.map(a => [a.id, a.brokerName]))
 
@@ -89,6 +91,30 @@ export function PortfolioOverview({ holdings, brokerAccounts }: Props) {
         <Stat label="Holdings" value={String(visible.length)} sub={holdings.length !== visible.length ? `of ${holdings.length}` : 'positions'} />
       </div>
 
+      {/* Holdings / Positions tab toggle */}
+      <div className="flex items-center gap-2 px-5 py-3 border-t border-slate-800">
+        {(['holdings', 'positions'] as const).map(tab => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={cn(
+              'px-3 py-1 text-[11px] font-semibold rounded-full border transition-colors capitalize',
+              activeTab === tab
+                ? 'bg-blue-600 border-blue-600 text-white'
+                : 'border-slate-700 text-slate-500 hover:text-white hover:border-slate-500'
+            )}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'positions' ? (
+        <div className="border-t border-slate-800 p-4">
+          <LivePositions />
+        </div>
+      ) : (
+      <>
       {/* Broker filter chips */}
       {activeBrokers.length > 1 && (
         <div className="flex items-center gap-2 px-5 py-3 border-t border-slate-800 overflow-x-auto">
@@ -238,6 +264,8 @@ export function PortfolioOverview({ holdings, brokerAccounts }: Props) {
             </div>
           ))}
         </div>
+      )}
+      </>
       )}
     </div>
   )
