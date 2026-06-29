@@ -113,8 +113,8 @@ async function DashboardContent() {
 }
 
 async function PortfolioLoader({ brokerAccounts }: { brokerAccounts: import('@/app/types').BrokerAccount[] }) {
-  const holdings = await getBrokerPortfoliosCached(brokerAccounts.map(a => a.id).join(','), brokerAccounts)
-  return <PortfolioOverview holdings={holdings} brokerAccounts={brokerAccounts} />
+  const { holdings, failures } = await getBrokerPortfoliosCached(brokerAccounts.map(a => a.id).join(','), brokerAccounts)
+  return <PortfolioOverview holdings={holdings} brokerAccounts={brokerAccounts} failures={failures} />
 }
 
 function PortfolioSkeleton() {
@@ -136,7 +136,7 @@ function PortfolioSkeleton() {
 }
 
 async function AIInsightsLoader({ brokerAccounts, appSettings }: { brokerAccounts: import('@/app/types').BrokerAccount[]; appSettings: ReturnType<typeof mapPrismaToAppSettings> }) {
-  const holdings = await getBrokerPortfoliosCached(brokerAccounts.map(a => a.id).join(','), brokerAccounts).catch(() => [])
+  const { holdings } = await getBrokerPortfoliosCached(brokerAccounts.map(a => a.id).join(','), brokerAccounts).catch(() => ({ holdings: [], failures: [] }))
   const symbols  = holdings.map(h => h.symbol)
   const insights = await getAIInsights(symbols, appSettings)
   return <AIInsights insights={insights} userPreferences={appSettings} />

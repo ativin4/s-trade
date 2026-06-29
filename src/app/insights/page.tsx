@@ -10,7 +10,7 @@ import { getBrokerPortfolios } from '@/lib/services/portfolio'
 import { fetchMarketNews } from '@/lib/services/news'
 import { mapPrismaToAppAccount } from '@/lib/broker'
 import { mapPrismaToAppSettings } from '@/lib/user'
-import type { AIAnalysisResponse, PortfolioHolding } from '@/app/types'
+import type { AIAnalysisResponse } from '@/app/types'
 
 export default async function InsightsPage() {
   const session = await getServerSession(authOptions)
@@ -41,7 +41,7 @@ async function InsightsContent({ userId }: { userId: string }) {
 
   const appSettings = mapPrismaToAppSettings(prismaSettings)
   const brokerAccounts = prismaAccounts.map(mapPrismaToAppAccount)
-  const portfolioHoldings: PortfolioHolding[] = await getBrokerPortfolios(brokerAccounts)
+  const { holdings: portfolioHoldings } = await getBrokerPortfolios(brokerAccounts)
   const symbols = portfolioHoldings.map(h => h.symbol)
   const news = await fetchMarketNews(symbols).catch(() => [])
 

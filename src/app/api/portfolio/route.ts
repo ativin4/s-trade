@@ -13,7 +13,7 @@ export async function GET() {
   })
 
   const mapped = accounts.map(mapPrismaToAppAccount)
-  const holdings = await getBrokerPortfolios(mapped)
+  const { holdings } = await getBrokerPortfolios(mapped)
   const performance = await getPortfolioPerformance(holdings)
 
   return NextResponse.json({ holdings, performance })

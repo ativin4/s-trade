@@ -32,6 +32,9 @@ function settled<T>(results: PromiseSettledResult<T[]>[]): T[] {
   return results.flatMap(r => r.status === 'fulfilled' ? r.value : [])
 }
 
+export interface BrokerFailure { broker: string; error: string }
+export interface PortfolioResult { holdings: PortfolioHolding[]; failures: BrokerFailure[] }
+
 // Brokers with direct API support independent of the adapter
 const DIRECT_API_BROKERS = new Set(['zerodha'])
 
@@ -51,19 +54,20 @@ async function directHoldings(account: BrokerAccount): Promise<PortfolioHolding[
 
 export async function getBrokerPortfolios(
   accounts: BrokerAccount[]
-): Promise<PortfolioHolding[]> {
+): Promise<PortfolioResult> {
   const adapterAvailable = brokerAdapter.available()
 
-  // Adapter path: only synced accounts when adapter is actually configured
   const adapterAccounts = adapterAvailable
     ? accounts.filter(a => a.isAdapterActive && !DIRECT_API_BROKERS.has(a.brokerName))
     : []
-  // Direct API: everything else (including synced accounts for adapter-less brokers)
   const directAccounts = accounts.filter(
     a => !adapterAvailable || !a.isAdapterActive || DIRECT_API_BROKERS.has(a.brokerName)
   )
 
-  const [adapterResults, directResults] = await Promise.all([
+  // Run all accounts independently — one failure never blocks another
+  const allResults: { acc: BrokerAccount; result: PromiseSettledResult<PortfolioHolding[]> }[] = []
+
+  const [adapterSettled, directSettled] = await Promise.all([
     adapterAccounts.length
       ? Promise.allSettled(
           adapterAccounts.map(async (acc) => {
@@ -71,8 +75,7 @@ export async function getBrokerPortfolios(
               const items = await brokerAdapter.holdings(acc.brokerName.toLowerCase())
               if (items.length > 0) return items.map(h => toPortfolioHolding(h, acc.id))
             } catch { /* fall through to direct */ }
-            // Adapter empty or failed — fall back to direct API
-            console.warn('[portfolio] adapter fallback to direct for', acc.brokerName)
+            console.warn('[portfolio] adapter empty/failed, using direct for', acc.brokerName)
             return directHoldings(acc)
           })
         )
@@ -81,12 +84,23 @@ export async function getBrokerPortfolios(
     Promise.allSettled(directAccounts.map(acc => directHoldings(acc))),
   ])
 
-  // Log failures so they're visible in Vercel runtime logs
-  for (const r of [...adapterResults, ...directResults]) {
-    if (r.status === 'rejected') console.error('[portfolio] broker fetch failed:', r.reason)
+  adapterAccounts.forEach((acc, i) => allResults.push({ acc, result: adapterSettled[i]! }))
+  directAccounts.forEach((acc, i)  => allResults.push({ acc, result: directSettled[i]! }))
+
+  const holdings: PortfolioHolding[] = []
+  const failures: BrokerFailure[] = []
+
+  for (const { acc, result } of allResults) {
+    if (result.status === 'fulfilled') {
+      holdings.push(...result.value)
+    } else {
+      const msg = (result.reason as Error)?.message ?? String(result.reason)
+      console.error(`[portfolio] ${acc.brokerName} failed:`, msg)
+      failures.push({ broker: acc.brokerName, error: msg })
+    }
   }
 
-  return [...settled(adapterResults), ...settled(directResults)]
+  return { holdings, failures }
 }
 
 // Per-request memoized wrapper. Multiple Suspense children that need the same

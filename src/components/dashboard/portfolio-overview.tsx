@@ -7,14 +7,17 @@ import { cn } from '@/lib/utils'
 import { fmtINR, fmtChangeINR } from '@/lib/format'
 import { LivePositions } from '@/components/dashboard/live-positions'
 
+import type { BrokerFailure } from '@/lib/services/portfolio'
+
 interface Props {
   holdings: PortfolioHolding[]
   brokerAccounts: BrokerAccount[]
+  failures?: BrokerFailure[]
 }
 
 const TABLE_COLS = ['Symbol', 'Qty', 'Avg', 'LTP', 'Day Chg', 'Value', 'P&L', 'Broker'] as const
 
-export function PortfolioOverview({ holdings, brokerAccounts }: Props) {
+export function PortfolioOverview({ holdings, brokerAccounts, failures = [] }: Props) {
   const router = useRouter()
   const [activeBroker, setActiveBroker] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'holdings' | 'positions'>('holdings')
@@ -78,6 +81,13 @@ export function PortfolioOverview({ holdings, brokerAccounts }: Props) {
 
   return (
     <div className="bg-[#0f1117] border border-slate-800 rounded-xl overflow-hidden">
+      {/* Broker failure banners */}
+      {failures.map(f => (
+        <div key={f.broker} className="flex items-center gap-2 px-4 py-2.5 bg-amber-950/40 border-b border-amber-800/50 text-amber-400 text-[12px]">
+          <span className="font-bold">⚠</span>
+          <span>Failed to load <span className="font-semibold capitalize">{f.broker}</span> holdings — {f.error}</span>
+        </div>
+      ))}
       {/* Stats row */}
       <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-y md:divide-y-0 divide-slate-800">
         <Stat label="Portfolio Value" value={fmtINR(totalValue)} />
