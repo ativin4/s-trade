@@ -2,9 +2,17 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getBrokerAccounts } from '@/lib/broker'
-import { getGrowwPositions } from '@/lib/services/groww'
 import { isGrowwMcp } from '@/lib/broker-constants'
 import { fetchPositions } from '@/lib/services/positions'
+import { resolveGrowwToken } from '@/lib/services/market-ltp'
+
+const GROWW_WEB_PATHS = [
+  'https://groww.in/v1/api/stocks_portfolio/v1/equity/positions',
+  'https://groww.in/v1/api/stocks_portfolio/v1/equity/mtf/positions',
+  'https://groww.in/v1/api/portfolio/v1/user/portfolio',
+  'https://api.groww.in/v1/user/portfolio/positions',
+  'https://api.groww.in/v2/user/portfolio/positions',
+]
 
 export async function GET() {
   const session = await getServerSession(authOptions)
@@ -13,13 +21,23 @@ export async function GET() {
   const accounts = await getBrokerAccounts(session.user.id)
   const groww = accounts.find(a => a.brokerName === 'groww' && !isGrowwMcp(a))
 
-  let raw: unknown = null
-  let rawError: string | null = null
-  if (groww) {
-    try {
-      raw = await getGrowwPositions(groww)
-    } catch (e) {
-      rawError = (e as Error).message
+  // Try multiple Groww endpoints to find one with MTF avgPrice
+  const growwToken = await resolveGrowwToken(session.user.id).catch(() => null)
+  const pathResults: Record<string, unknown> = {}
+  if (growwToken) {
+    for (const path of GROWW_WEB_PATHS) {
+      try {
+        const res = await fetch(path, {
+          headers: {
+            Authorization: `Bearer ${growwToken}`,
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+        })
+        pathResults[path] = { status: res.status, body: res.ok ? await res.json().catch(() => null) : null }
+      } catch (e) {
+        pathResults[path] = { error: (e as Error).message }
+      }
     }
   }
 
@@ -33,8 +51,8 @@ export async function GET() {
 
   return NextResponse.json({
     hasGrowwAccount: !!groww,
-    raw,
-    rawError,
+    hasToken: !!growwToken,
+    pathResults,
     normalized,
     normalizedError,
   })
