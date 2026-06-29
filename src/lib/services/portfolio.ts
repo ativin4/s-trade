@@ -67,8 +67,13 @@ export async function getBrokerPortfolios(
     adapterAccounts.length
       ? Promise.allSettled(
           adapterAccounts.map(async (acc) => {
-            const items = await brokerAdapter.holdings(acc.brokerName.toLowerCase())
-            return items.map(h => toPortfolioHolding(h, acc.id))
+            try {
+              const items = await brokerAdapter.holdings(acc.brokerName.toLowerCase())
+              if (items.length > 0) return items.map(h => toPortfolioHolding(h, acc.id))
+            } catch { /* fall through to direct */ }
+            // Adapter empty or failed — fall back to direct API
+            console.warn('[portfolio] adapter fallback to direct for', acc.brokerName)
+            return directHoldings(acc)
           })
         )
       : Promise.resolve([] as PromiseSettledResult<PortfolioHolding[]>[]),
