@@ -113,15 +113,20 @@ export function LivePositions({ initialPositions = [] }: Props) {
                       <span className="font-semibold text-slate-200 text-[13px]">{pos.symbol}</span>
                       <span className={cn('text-[9px] font-bold px-1.5 py-0.5 rounded', pos.side === 'BUY' ? 'bg-emerald-900/60 text-emerald-400' : 'bg-red-900/60 text-red-400')}>{pos.side}</span>
                     </div>
-                    <p className="text-[11px] text-slate-500 mt-0.5">{pos.qty} qty · avg {fmtINR(pos.avgPrice)} · {pos.broker}</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      {pos.qty} qty · avg {pos.avgPrice > 0 ? fmtINR(pos.avgPrice) : '—'} · {pos.broker}
+                    </p>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className="text-[13px] font-bold text-white tabular-nums">{fmtINR(pos.ltp)}</p>
+                    <p className="text-[13px] font-bold text-white tabular-nums">{pos.ltp > 0 ? fmtINR(pos.ltp) : '—'}</p>
                     <p className={cn('text-[12px] font-semibold tabular-nums', up ? 'text-emerald-400' : 'text-red-400')}>
-                      {fmtChangeINR(netUnreal)}
+                      {pos.avgPrice > 0 ? fmtChangeINR(netUnreal) : <span className="text-slate-600 text-[10px]">sync needed</span>}
                     </p>
                     {isMtf && mtfInterest > 0 && (
                       <p className="text-[10px] text-red-400/80 tabular-nums">MTF int: ₹{mtfInterest.toFixed(0)}</p>
+                    )}
+                    {isMtf && pos.avgPrice === 0 && (
+                      <p className="text-[10px] text-amber-600/70">~18% p.a. interest</p>
                     )}
                   </div>
                 </div>
@@ -178,12 +183,23 @@ export function LivePositions({ initialPositions = [] }: Props) {
                       </span>
                     </td>
                     <td className="px-5 py-2.5 text-right text-slate-300 tabular-nums">{pos.qty}</td>
-                    <td className="px-5 py-2.5 text-right text-slate-500 tabular-nums">{fmtINR(pos.avgPrice)}</td>
-                    <td className="px-5 py-2.5 text-right text-white tabular-nums font-medium">{fmtINR(pos.ltp)}</td>
+                    <td className="px-5 py-2.5 text-right text-slate-500 tabular-nums">
+                      {pos.avgPrice > 0 ? fmtINR(pos.avgPrice) : <span className="text-slate-700">—</span>}
+                    </td>
+                    <td className="px-5 py-2.5 text-right text-white tabular-nums font-medium">{pos.ltp > 0 ? fmtINR(pos.ltp) : '—'}</td>
                     <td className={cn('px-5 py-2.5 text-right tabular-nums font-semibold', up ? 'text-emerald-400' : 'text-red-400')}>
-                      {fmtChangeINR(netUnreal)}
-                      {isMtf && mtfInterest > 0 && (
-                        <span className="block text-[10px] font-normal text-red-400/80">MTF int: ₹{mtfInterest.toFixed(0)}</span>
+                      {pos.avgPrice > 0 ? (
+                        <>
+                          {fmtChangeINR(netUnreal)}
+                          {isMtf && mtfInterest > 0 && (
+                            <span className="block text-[10px] font-normal text-red-400/80">MTF int: ₹{mtfInterest.toFixed(0)}</span>
+                          )}
+                          {isMtf && mtfInterest === 0 && (
+                            <span className="block text-[10px] font-normal text-amber-500/70">~18% p.a. interest</span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-slate-600 text-[10px] font-normal">sync needed</span>
                       )}
                     </td>
                     <td className="px-5 py-2.5 text-slate-600 capitalize text-[11px]">{pos.broker}</td>

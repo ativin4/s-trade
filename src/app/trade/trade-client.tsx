@@ -269,18 +269,29 @@ export function TradeClient({ userId, brokerAccounts, recentTrades, userSettings
                           </span>
                         </td>
                         <td className="px-3 py-1.5 text-right text-slate-300 tabular-nums">{pos.qty}</td>
-                        <td className="px-3 py-1.5 text-right text-slate-400 tabular-nums">{fmtINR(pos.avgPrice)}</td>
+                        <td className="px-3 py-1.5 text-right text-slate-400 tabular-nums">
+                          {pos.avgPrice > 0 ? fmtINR(pos.avgPrice) : <span className="text-slate-600">—</span>}
+                        </td>
                         <td className="px-3 py-1.5 text-right text-slate-200 tabular-nums font-medium">{pos.ltp > 0 ? fmtINR(pos.ltp) : '—'}</td>
                         <td className={cn('px-3 py-1.5 text-right tabular-nums font-semibold', netUnreal >= 0 ? 'text-emerald-400' : 'text-red-400')}>
                           {isOpen ? (
-                            <>
-                              {fmtChangeINR(netUnreal)}
-                              {isMtf && mtfInterest > 0 && (
-                                <span className="block text-[10px] font-normal text-red-400/80">
-                                  MTF int: ₹{mtfInterest.toFixed(0)}
-                                </span>
-                              )}
-                            </>
+                            pos.avgPrice > 0 ? (
+                              <>
+                                {fmtChangeINR(netUnreal)}
+                                {isMtf && mtfInterest > 0 && (
+                                  <span className="block text-[10px] font-normal text-red-400/80">
+                                    MTF int: ₹{mtfInterest.toFixed(0)}
+                                  </span>
+                                )}
+                                {isMtf && mtfInterest === 0 && (
+                                  <span className="block text-[10px] font-normal text-amber-500/70">
+                                    ~18% p.a. interest accrues
+                                  </span>
+                                )}
+                              </>
+                            ) : (
+                              <span className="text-slate-600 text-[10px]">sync needed</span>
+                            )
                           ) : '—'}
                         </td>
                         <td className={cn('px-3 py-1.5 text-right tabular-nums font-semibold', realised >= 0 ? 'text-emerald-400' : 'text-red-400')}>
