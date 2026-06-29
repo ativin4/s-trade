@@ -116,9 +116,14 @@ export async function getGrowwHoldings(account: BrokerAccount): Promise<Portfoli
 }
 
 export async function getGrowwPositions(account: BrokerAccount) {
-  const res = await growwFetch(account, `${GROWW_API}/positions`)
-  if (!res.ok) throw new ExternalAPIError(`Groww positions failed: ${res.statusText}`, 'groww')
-  return res.json()
+  // Groww v1 positions endpoint varies — try known paths in order
+  const paths = ['/v1/positions', '/v1/user/portfolio/positions', '/v2/positions']
+  for (const path of paths) {
+    const res = await growwFetch(account, `https://api.groww.in${path}`)
+    if (res.ok) return res.json()
+    if (res.status !== 404) throw new ExternalAPIError(`Groww positions failed: ${res.statusText}`, 'groww')
+  }
+  throw new ExternalAPIError('Groww positions failed: Not Found (tried all known paths)', 'groww')
 }
 
 export async function getGrowwMargin(account: BrokerAccount) {

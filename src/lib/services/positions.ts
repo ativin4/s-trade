@@ -41,8 +41,23 @@ export async function fetchPositions(userId: string): Promise<PositionEntry[]> {
     if (synced.length > 0) {
       const results = await Promise.allSettled(
         synced.map(async acc => {
-          const positions = await brokerAdapter.positions(acc.brokerName.toLowerCase())
-          return positions.map(p => normalise(p, acc.brokerName))
+          const brokerKey = acc.brokerName.toLowerCase()
+          const [positions, holdings] = await Promise.allSettled([
+            brokerAdapter.positions(brokerKey),
+            brokerAdapter.holdings(brokerKey),
+          ])
+          const rawPos   = positions.status === 'fulfilled' ? positions.value : []
+          const rawHold  = holdings.status  === 'fulfilled' ? holdings.value  : []
+          // Adapter MTF positions often return 0 for avgPrice/ltp — backfill from holdings
+          const holdMap  = Object.fromEntries(rawHold.map(h => [h.symbol, h]))
+          return rawPos.map(p => {
+            const h = holdMap[p.symbol]
+            return normalise({
+              ...p,
+              avgPrice: p.avgPrice || h?.avgPrice || 0,
+              ltp:      p.ltp      || h?.ltp      || 0,
+            }, acc.brokerName)
+          })
         })
       )
       const merged = results.flatMap(r => r.status === 'fulfilled' ? r.value : [])
