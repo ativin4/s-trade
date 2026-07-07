@@ -25,7 +25,7 @@ type FormValues = {
 }
 
 type ExtraField = { name: 'totpSecret' | 'jwtToken' | 'feedToken' | `extra.${keyof ExtraCreds}`; label: string; hint?: string; tooltip?: string }
-type BrokerConfig = { clientCodeLabel: string; apiSecretRequired?: boolean; apiSecretLabel?: string; apiSecretHint?: string; extraFields?: ExtraField[]; extraFieldsAlt?: ExtraField[]; altModeLabel?: string }
+type BrokerConfig = { clientCodeLabel: string; apiSecretRequired?: boolean; apiSecretOptional?: boolean; apiSecretLabel?: string; apiSecretHint?: string; extraFields?: ExtraField[]; extraFieldsAlt?: ExtraField[]; altModeLabel?: string }
 
 // App-level credentials shared by both 5paisa login modes
 const FIVEPAISA_APP_FIELDS: ExtraField[] = [
@@ -51,7 +51,19 @@ const BROKER_CONFIG: Partial<Record<BrokerName, BrokerConfig>> = {
       },
     ],
   },
-  zerodha:   { clientCodeLabel: 'API Key' },
+  zerodha:   {
+    clientCodeLabel: 'API Key',
+    apiSecretLabel: 'API Secret',
+    apiSecretOptional: true,
+    apiSecretHint: 'From your Kite Connect app (kite.trade → your app). Optional — only needed for token auto-refresh.',
+    extraFields: [
+      {
+        name: 'jwtToken', label: 'Access Token',
+        hint: 'Daily session token — expires ~6 AM next day. Generate via the Kite login flow (request_token → session).',
+        tooltip: 'Kite Connect issues an access_token after you complete the login redirect and exchange the request_token using your API Secret. It authorises API calls on your behalf and must be refreshed each trading day.',
+      },
+    ],
+  },
   '5paisa':  {
     clientCodeLabel: 'User ID',
     apiSecretLabel: 'Password',
@@ -255,7 +267,7 @@ export function AddBrokerDialog({ brokerName, connectionType = 'api', children }
                       <input
                         type="password"
                         className={inputCls}
-                        {...register('apiSecret', { required: 'Required' })}
+                        {...register('apiSecret', cfg.apiSecretOptional ? {} : { required: 'Required' })}
                       />
                     </Field>
                   )}
