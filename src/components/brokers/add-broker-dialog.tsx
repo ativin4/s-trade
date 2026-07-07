@@ -13,7 +13,7 @@ interface AddBrokerDialogProps {
   children: React.ReactElement
 }
 
-type ExtraCreds = { userKey?: string; realClientCode?: string; realTotpSecret?: string; pin?: string; accessToken?: string }
+type ExtraCreds = { userKey?: string; realClientCode?: string; realTotpSecret?: string; pin?: string; accessToken?: string; userId?: string; password?: string }
 
 type FormValues = {
   clientCode: string
@@ -25,7 +25,7 @@ type FormValues = {
 }
 
 type ExtraField = { name: 'totpSecret' | 'jwtToken' | 'feedToken' | `extra.${keyof ExtraCreds}`; label: string; hint?: string; tooltip?: string }
-type BrokerConfig = { clientCodeLabel: string; apiSecretRequired?: boolean; apiSecretOptional?: boolean; apiSecretLabel?: string; apiSecretHint?: string; extraFields?: ExtraField[]; extraFieldsAlt?: ExtraField[]; altModeLabel?: string }
+type BrokerConfig = { clientCodeLabel: string; apiSecretRequired?: boolean; apiSecretLabel?: string; apiSecretHint?: string; extraFields?: ExtraField[]; extraFieldsAlt?: ExtraField[]; altModeLabel?: string }
 
 // App-level credentials shared by both 5paisa login modes
 const FIVEPAISA_APP_FIELDS: ExtraField[] = [
@@ -54,13 +54,24 @@ const BROKER_CONFIG: Partial<Record<BrokerName, BrokerConfig>> = {
   zerodha:   {
     clientCodeLabel: 'API Key',
     apiSecretLabel: 'API Secret',
-    apiSecretOptional: true,
-    apiSecretHint: 'From your Kite Connect app (kite.trade → your app). Optional — only needed for token auto-refresh.',
+    apiSecretHint: 'From your Kite Connect app at kite.trade.',
+    altModeLabel: 'Daily Access Token',
     extraFields: [
+      // Persist-session mode: auto-generate token from login credentials
+      { name: 'extra.userId',   label: 'Zerodha User ID',    hint: 'Your Zerodha login ID (e.g. ZB1234).' },
+      { name: 'extra.password', label: 'Password',           hint: 'Your Zerodha login password.' },
+      {
+        name: 'totpSecret', label: 'TOTP Secret',
+        hint: 'Base32 key from Zerodha → My Profile → Security → TOTP authenticator setup.',
+        tooltip: 'Save the text key shown below the QR code when you set up the TOTP authenticator in Zerodha. Lets s-trade generate a fresh OTP every 30 seconds to log in automatically.',
+      },
+    ],
+    extraFieldsAlt: [
+      // Daily JWT mode: paste today's access_token manually
       {
         name: 'jwtToken', label: 'Access Token',
-        hint: 'Daily session token — expires ~6 AM next day. Generate via the Kite login flow (request_token → session).',
-        tooltip: 'Kite Connect issues an access_token after you complete the login redirect and exchange the request_token using your API Secret. It authorises API calls on your behalf and must be refreshed each trading day.',
+        hint: 'Daily session token — expires ~6 AM next day. Generate via kite.trade → login redirect → session/token exchange.',
+        tooltip: 'After completing the Kite Connect login flow, exchange the request_token for an access_token using your API Secret. Paste it here. You will need to update it each trading day.',
       },
     ],
   },
@@ -267,7 +278,7 @@ export function AddBrokerDialog({ brokerName, connectionType = 'api', children }
                       <input
                         type="password"
                         className={inputCls}
-                        {...register('apiSecret', cfg.apiSecretOptional ? {} : { required: 'Required' })}
+                        {...register('apiSecret', { required: 'Required' })}
                       />
                     </Field>
                   )}

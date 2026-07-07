@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import type { BrokerName } from '@/app/types'
 import { getGrowwAccessToken } from '@/lib/services/groww'
+import { getZerodhaAccessToken } from '@/lib/services/zerodha'
 import { mapPrismaToAppAccount } from '@/lib/broker'
 import { encrypt } from '@/lib/crypto'
 import { GROWW_MCP_SENTINEL } from '@/lib/broker-constants'
@@ -17,7 +18,7 @@ export async function connectBroker(
     totpSecret?: string
     jwtToken?: string
     feedToken?: string
-    extra?: Record<string, string | undefined>
+    extra?: Record<string, string | undefined> & { userId?: string; password?: string }
   }
 ) {
   const session = await getServerSession(authOptions)
@@ -36,12 +37,12 @@ export async function connectBroker(
   const encApiSecret  = credentials.apiSecret  ? encrypt(credentials.apiSecret)  : null
   const encTotpSecret = credentials.totpSecret ? encrypt(credentials.totpSecret) : null
 
-  // Generate JWT immediately if real API credentials provided
+  // Auto-generate session token where possible
   let jwtToken: string | undefined
   if (!isMcp && brokerName === 'groww' && (credentials.totpSecret || credentials.apiSecret)) {
     const fakeAccount = {
       id: '', userId: session.user.id, brokerName,
-      clientCode: credentials.clientCode,  // plaintext for getGrowwAccessToken
+      clientCode: credentials.clientCode,
       apiSecret:  credentials.apiSecret  ?? null,
       totpSecret: credentials.totpSecret ?? null,
       jwtToken: null, feedToken: null, isActive: true,
@@ -55,7 +56,21 @@ export async function connectBroker(
     }
   }
 
-  // Groww-generated JWT takes priority; otherwise use a manually supplied value (e.g. 5paisa's SOURCE field)
+  if (brokerName === 'zerodha' && credentials.totpSecret && credentials.apiSecret && credentials.extra?.userId && credentials.extra?.password) {
+    try {
+      jwtToken = await getZerodhaAccessToken(
+        credentials.clientCode,
+        credentials.apiSecret,
+        credentials.extra.userId,
+        credentials.extra.password,
+        credentials.totpSecret,
+      )
+    } catch (err) {
+      throw new Error(`Zerodha auth failed: ${(err as Error).message}`)
+    }
+  }
+
+  // Auto-generated token takes priority; otherwise use manually supplied value
   const encJwt  = jwtToken ? encrypt(jwtToken) : (credentials.jwtToken ? encrypt(credentials.jwtToken) : undefined)
   const encFeed = credentials.feedToken ? encrypt(credentials.feedToken) : undefined
 
