@@ -54,7 +54,21 @@ const BROKER_CONFIG: Partial<Record<BrokerName, BrokerConfig>> = {
   zerodha:   {
     clientCodeLabel: 'API Key',
     apiSecretLabel: 'API Secret',
-    apiSecretHint: 'From your Kite Connect app at kite.trade. Also register https://s-trade.atin.dev/api/broker/callback/zerodha as the redirect URL.',
+    apiSecretHint: 'From your Kite Connect app at kite.trade.',
+    altModeLabel: 'Manual OAuth',
+    extraFields: [
+      // Auto-refresh mode: s-trade logs in daily using stored credentials
+      { name: 'extra.userId',   label: 'Zerodha User ID', hint: 'Your Zerodha login ID (e.g. ZB1234).' },
+      { name: 'extra.password', label: 'Password',        hint: 'Your Zerodha login password.' },
+      {
+        name: 'totpSecret', label: 'TOTP Secret',
+        hint: 'Base32 key from Zerodha → My Profile → Security → TOTP setup.',
+        tooltip: 'Lets s-trade generate a fresh OTP every 30 seconds to log in automatically each morning. Get it from the TOTP authenticator setup screen in Zerodha — save the text key shown below the QR code.',
+      },
+    ],
+    extraFieldsAlt: [
+      // Manual mode: user clicks Authorize each morning — no extra creds needed
+    ],
   },
   '5paisa':  {
     clientCodeLabel: 'User ID',

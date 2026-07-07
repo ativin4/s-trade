@@ -222,14 +222,18 @@ export function BrokerConnectionCard({ account }: BrokerConnectionCardProps) {
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-slate-500">{account.brokerName === 'zerodha' ? 'Access Token' : 'TOTP'}</span>
-            <span className={account.brokerName === 'zerodha'
-              ? (account.jwtToken ? 'text-emerald-400' : 'text-amber-400')
-              : (account.totpSecret ? 'text-emerald-400' : 'text-slate-600')}>
-              {account.brokerName === 'zerodha'
-                ? (account.jwtToken ? '✓ Authorized' : '⚠ Not authorized')
-                : (account.totpSecret ? '✓ Configured' : 'Not set')}
-            </span>
+            <span className="text-slate-500">{account.brokerName === 'zerodha' ? 'Session' : 'TOTP'}</span>
+            {account.brokerName === 'zerodha' ? (
+              <span className={account.jwtToken ? 'text-emerald-400' : 'text-amber-400'}>
+                {account.totpSecret
+                  ? (account.jwtToken ? '✓ Auto-refresh' : '⚠ Pending first auth')
+                  : (account.jwtToken ? '✓ Authorized' : '⚠ Not authorized')}
+              </span>
+            ) : (
+              <span className={account.totpSecret ? 'text-emerald-400' : 'text-slate-600'}>
+                {account.totpSecret ? '✓ Configured' : 'Not set'}
+              </span>
+            )}
           </div>
         </div>
 
@@ -237,7 +241,7 @@ export function BrokerConnectionCard({ account }: BrokerConnectionCardProps) {
 
         {/* Actions */}
         <div className="flex gap-2">
-          {account.brokerName === 'zerodha' && (
+          {account.brokerName === 'zerodha' && !account.totpSecret && (
             <a
               href={`/api/broker/authorize/zerodha?accountId=${account.id}`}
               className="flex-1 py-1.5 rounded-lg bg-blue-700 hover:bg-blue-600 text-white text-xs font-semibold text-center transition-colors"

@@ -68,14 +68,14 @@ export async function getZerodhaAccessToken(
   })
 
   // Step 1 — seed session cookies
-  const seedRes = await fetch(`https://kite.trade/connect/login?api_key=${apiKey}&v=3`, {
+  const seedRes = await fetch(`https://kite.zerodha.com/connect/login?v=3&api_key=${apiKey}`, {
     redirect: 'manual',
     headers: headers(),
   })
   let cookies = extractCookies(seedRes)
 
   // Step 2 — password login
-  const loginRes = await fetch('https://kite.trade/api/login', {
+  const loginRes = await fetch('https://kite.zerodha.com/api/login', {
     method: 'POST',
     headers: headers({ 'Content-Type': 'application/x-www-form-urlencoded', 'Cookie': cookies }),
     body: new URLSearchParams({ user_id: userId, password }),
@@ -91,21 +91,20 @@ export async function getZerodhaAccessToken(
 
   // Step 3 — TOTP 2FA (sets enc_token / public_token cookies)
   const totpCode = generateTOTP(totpSecret)
-  const twoFaRes = await fetch('https://kite.trade/api/twofa', {
+  const twoFaRes = await fetch('https://kite.zerodha.com/api/twofa', {
     method: 'POST',
     headers: headers({ 'Content-Type': 'application/x-www-form-urlencoded', 'Cookie': cookies }),
     body: new URLSearchParams({ user_id: userId, request_id: requestId, twofa_value: totpCode, twofa_type: 'totp' }),
     redirect: 'manual',
   })
   cookies = extractCookies(twoFaRes, cookies)
-  // 2FA can return 200 JSON or 302 — both are fine as long as enc_token cookie is set
   if (!twoFaRes.ok && twoFaRes.status !== 302) {
     const body = await twoFaRes.text().catch(() => '')
     throw new ExternalAPIError(`Zerodha 2FA failed (${twoFaRes.status}): ${body.slice(0, 200)}`, 'zerodha')
   }
 
   // Step 4 — re-hit connect/login with auth cookies → redirects to redirect_url?request_token=xxx
-  const connectRes = await fetch(`https://kite.trade/connect/login?api_key=${apiKey}&v=3`, {
+  const connectRes = await fetch(`https://kite.zerodha.com/connect/login?v=3&api_key=${apiKey}`, {
     redirect: 'manual',
     headers: headers({ 'Cookie': cookies }),
   })
