@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import type { BrokerAccount, BrokerName } from '@/app/types'
 import { AddBrokerDialog } from '@/components/brokers/add-broker-dialog'
+import { disconnectBroker } from '@/lib/actions/broker'
 import { cn } from '@/lib/utils'
 import { isGrowwMcp } from '@/lib/broker-constants'
 
@@ -135,6 +136,21 @@ export function BrokerConnectionCard({ account }: BrokerConnectionCardProps) {
   const [syncing, setSyncing] = useState(false)
   const [synced, setSynced] = useState(account.isAdapterActive)
   const [error, setError] = useState<string | null>(null)
+  const [disconnecting, setDisconnecting] = useState(false)
+  const [confirmDisconnect, setConfirmDisconnect] = useState(false)
+
+  async function handleDisconnect() {
+    setDisconnecting(true)
+    setError(null)
+    try {
+      await disconnectBroker(account.id)
+      window.location.reload()
+    } catch (e) {
+      setError((e as Error).message)
+      setDisconnecting(false)
+      setConfirmDisconnect(false)
+    }
+  }
 
   async function toggleSync() {
     setSyncing(true)
@@ -219,7 +235,7 @@ export function BrokerConnectionCard({ account }: BrokerConnectionCardProps) {
         <div className="flex gap-2">
           <AddBrokerDialog brokerName={account.brokerName as BrokerName} connectionType="api">
             <button className="flex-1 py-1.5 rounded-lg border border-slate-700 text-slate-400 text-xs font-medium hover:border-slate-500 hover:text-white transition-colors">
-              Update Credentials
+              Update
             </button>
           </AddBrokerDialog>
 
@@ -235,6 +251,32 @@ export function BrokerConnectionCard({ account }: BrokerConnectionCardProps) {
               )}
             >
               {syncing ? '…' : synced ? '✓ Synced' : 'Sync'}
+            </button>
+          )}
+
+          {confirmDisconnect ? (
+            <div className="flex gap-1">
+              <button
+                onClick={handleDisconnect}
+                disabled={disconnecting}
+                className="px-2.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-semibold disabled:opacity-50 transition-colors"
+              >
+                {disconnecting ? '…' : 'Confirm'}
+              </button>
+              <button
+                onClick={() => setConfirmDisconnect(false)}
+                className="px-2 py-1.5 rounded-lg border border-slate-700 text-slate-400 text-xs hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setConfirmDisconnect(true)}
+              className="px-2.5 py-1.5 rounded-lg border border-slate-700/60 text-slate-600 text-xs hover:border-red-700/60 hover:text-red-400 transition-colors"
+              title="Disconnect"
+            >
+              ✕
             </button>
           )}
         </div>
