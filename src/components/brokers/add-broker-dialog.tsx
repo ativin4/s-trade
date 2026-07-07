@@ -55,23 +55,11 @@ const BROKER_CONFIG: Partial<Record<BrokerName, BrokerConfig>> = {
     clientCodeLabel: 'API Key',
     apiSecretLabel: 'API Secret',
     apiSecretHint: 'From your Kite Connect app at kite.trade.',
-    altModeLabel: 'Daily Access Token',
     extraFields: [
-      // Persist-session mode: auto-generate token from login credentials
-      { name: 'extra.userId',   label: 'Zerodha User ID',    hint: 'Your Zerodha login ID (e.g. ZB1234).' },
-      { name: 'extra.password', label: 'Password',           hint: 'Your Zerodha login password.' },
-      {
-        name: 'totpSecret', label: 'TOTP Secret',
-        hint: 'Base32 key from Zerodha → My Profile → Security → TOTP authenticator setup.',
-        tooltip: 'Save the text key shown below the QR code when you set up the TOTP authenticator in Zerodha. Lets s-trade generate a fresh OTP every 30 seconds to log in automatically.',
-      },
-    ],
-    extraFieldsAlt: [
-      // Daily JWT mode: paste today's access_token manually
       {
         name: 'jwtToken', label: 'Access Token',
-        hint: 'Daily session token — expires ~6 AM next day. Generate via kite.trade → login redirect → session/token exchange.',
-        tooltip: 'After completing the Kite Connect login flow, exchange the request_token for an access_token using your API Secret. Paste it here. You will need to update it each trading day.',
+        hint: 'Daily OAuth token — expires ~6 AM next day. Generate via kite.trade → login flow → session/token exchange.',
+        tooltip: 'Kite Connect uses OAuth. After completing the login redirect, exchange the request_token for an access_token using your API Secret. Paste it here — you will need to refresh it each trading day.',
       },
     ],
   },
