@@ -222,9 +222,13 @@ export function BrokerConnectionCard({ account }: BrokerConnectionCardProps) {
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-slate-500">TOTP</span>
-            <span className={account.totpSecret ? 'text-emerald-400' : 'text-slate-600'}>
-              {account.totpSecret ? '✓ Configured' : 'Not set'}
+            <span className="text-slate-500">{account.brokerName === 'zerodha' ? 'Access Token' : 'TOTP'}</span>
+            <span className={account.brokerName === 'zerodha'
+              ? (account.jwtToken ? 'text-emerald-400' : 'text-amber-400')
+              : (account.totpSecret ? 'text-emerald-400' : 'text-slate-600')}>
+              {account.brokerName === 'zerodha'
+                ? (account.jwtToken ? '✓ Authorized' : '⚠ Not authorized')
+                : (account.totpSecret ? '✓ Configured' : 'Not set')}
             </span>
           </div>
         </div>
@@ -233,6 +237,14 @@ export function BrokerConnectionCard({ account }: BrokerConnectionCardProps) {
 
         {/* Actions */}
         <div className="flex gap-2">
+          {account.brokerName === 'zerodha' && (
+            <a
+              href={`/api/broker/authorize/zerodha?accountId=${account.id}`}
+              className="flex-1 py-1.5 rounded-lg bg-blue-700 hover:bg-blue-600 text-white text-xs font-semibold text-center transition-colors"
+            >
+              {account.jwtToken ? 'Re-authorize' : 'Authorize'}
+            </a>
+          )}
           <AddBrokerDialog brokerName={account.brokerName as BrokerName} connectionType="api">
             <button className="flex-1 py-1.5 rounded-lg border border-slate-700 text-slate-400 text-xs font-medium hover:border-slate-500 hover:text-white transition-colors">
               Update

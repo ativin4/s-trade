@@ -54,14 +54,7 @@ const BROKER_CONFIG: Partial<Record<BrokerName, BrokerConfig>> = {
   zerodha:   {
     clientCodeLabel: 'API Key',
     apiSecretLabel: 'API Secret',
-    apiSecretHint: 'From your Kite Connect app at kite.trade.',
-    extraFields: [
-      {
-        name: 'jwtToken', label: 'Access Token',
-        hint: 'Daily OAuth token — expires ~6 AM next day. Generate via kite.trade → login flow → session/token exchange.',
-        tooltip: 'Kite Connect uses OAuth. After completing the login redirect, exchange the request_token for an access_token using your API Secret. Paste it here — you will need to refresh it each trading day.',
-      },
-    ],
+    apiSecretHint: 'From your Kite Connect app at kite.trade. Also register https://s-trade.atin.dev/api/broker/callback/zerodha as the redirect URL.',
   },
   '5paisa':  {
     clientCodeLabel: 'User ID',
