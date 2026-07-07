@@ -4,7 +4,7 @@ import { mapPrismaToAppAccount } from '@/lib/broker'
 import { encrypt, safeDecrypt } from '@/lib/crypto'
 import { getGrowwAccessToken } from '@/lib/services/groww'
 import { loginWithTotp } from '@/lib/services/5paisa'
-import { getZerodhaAccessToken } from '@/lib/services/zerodha'
+import { getZerodhaAccessToken, pushZerodhaTokenToAdapter } from '@/lib/services/zerodha'
 
 // Vercel Cron sends Authorization: Bearer {CRON_SECRET}
 function authorized(req: NextRequest) {
@@ -77,7 +77,7 @@ export async function GET(req: NextRequest) {
         return `zerodha:${acc.id.slice(-4)} skip (incomplete persist-session creds)`
       }
       const token = await getZerodhaAccessToken(apiKey, apiSecret, userId, password, totpSecret)
-      await prisma.brokerAccount.update({ where: { id: acc.id }, data: { jwtToken: encrypt(token) } })
+      await pushZerodhaTokenToAdapter(acc.id, apiKey, token)
       return `zerodha:${acc.id.slice(-4)} ok`
     }
 

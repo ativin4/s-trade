@@ -1,5 +1,7 @@
 import { createHash, createHmac } from 'crypto'
 import { ExternalAPIError } from '@/app/types'
+import { prisma } from '@/lib/auth'
+import { encrypt } from '@/lib/crypto'
 
 // RFC 6238 TOTP (same impl as groww.ts — no external dep)
 function generateTOTP(base32Secret: string, period = 30, digits = 6): string {
@@ -31,7 +33,6 @@ function extractCookies(res: Response, existing = ''): string {
     ...existing.split(';').map(s => s.trim()).filter(Boolean),
     ...raw.map(c => c.split(';')[0]!.trim()),
   ]
-  // last value wins for duplicates
   const map = new Map<string, string>()
   for (const pair of pairs) {
     const eq = pair.indexOf('=')
@@ -47,12 +48,13 @@ const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Geck
  * Full automated Kite Connect login:
  *   user_id + password + TOTP → request_token → access_token
  *
- * Flow (mirrors standard Python kiteconnect automation):
- *   1. GET connect/login  — seeds session cookies
- *   2. POST api/login     — password auth → request_id
- *   3. POST api/twofa     — TOTP auth → sets enc_token cookie
- *   4. GET connect/login  — with enc_token → redirects to app redirect_url?request_token=xxx
- *   5. POST session/token — request_token + checksum → access_token
+ * Flow:
+ *   1. GET  kite.zerodha.com/connect/login  — seed session cookies
+ *   2. POST kite.zerodha.com/api/login      — password auth → request_id
+ *   3. POST kite.zerodha.com/api/twofa      — TOTP → sets enc_token cookie
+ *   4. GET  kite.zerodha.com/connect/login  — with enc_token → redirects to
+ *                                             redirect_url?request_token=xxx
+ *   5. POST api.kite.trade/session/token    — checksum exchange → access_token
  */
 export async function getZerodhaAccessToken(
   apiKey: string,
@@ -61,7 +63,7 @@ export async function getZerodhaAccessToken(
   password: string,
   totpSecret: string,
 ): Promise<string> {
-  const headers = (extra: Record<string, string> = {}) => ({
+  const h = (extra: Record<string, string> = {}) => ({
     'User-Agent': UA,
     'Accept': 'application/json, text/plain, */*',
     ...extra,
@@ -70,14 +72,14 @@ export async function getZerodhaAccessToken(
   // Step 1 — seed session cookies
   const seedRes = await fetch(`https://kite.zerodha.com/connect/login?v=3&api_key=${apiKey}`, {
     redirect: 'manual',
-    headers: headers(),
+    headers: h(),
   })
   let cookies = extractCookies(seedRes)
 
   // Step 2 — password login
   const loginRes = await fetch('https://kite.zerodha.com/api/login', {
     method: 'POST',
-    headers: headers({ 'Content-Type': 'application/x-www-form-urlencoded', 'Cookie': cookies }),
+    headers: h({ 'Content-Type': 'application/x-www-form-urlencoded', Cookie: cookies }),
     body: new URLSearchParams({ user_id: userId, password }),
   })
   cookies = extractCookies(loginRes, cookies)
@@ -89,11 +91,11 @@ export async function getZerodhaAccessToken(
   const requestId = (loginJson.data as Record<string, string>).request_id ?? ''
   if (!requestId) throw new ExternalAPIError('Zerodha login returned no request_id', 'zerodha')
 
-  // Step 3 — TOTP 2FA (sets enc_token / public_token cookies)
+  // Step 3 — TOTP 2FA (sets enc_token cookie)
   const totpCode = generateTOTP(totpSecret)
   const twoFaRes = await fetch('https://kite.zerodha.com/api/twofa', {
     method: 'POST',
-    headers: headers({ 'Content-Type': 'application/x-www-form-urlencoded', 'Cookie': cookies }),
+    headers: h({ 'Content-Type': 'application/x-www-form-urlencoded', Cookie: cookies }),
     body: new URLSearchParams({ user_id: userId, request_id: requestId, twofa_value: totpCode, twofa_type: 'totp' }),
     redirect: 'manual',
   })
@@ -103,10 +105,10 @@ export async function getZerodhaAccessToken(
     throw new ExternalAPIError(`Zerodha 2FA failed (${twoFaRes.status}): ${body.slice(0, 200)}`, 'zerodha')
   }
 
-  // Step 4 — re-hit connect/login with auth cookies → redirects to redirect_url?request_token=xxx
+  // Step 4 — connect/login with auth cookies → redirects with request_token
   const connectRes = await fetch(`https://kite.zerodha.com/connect/login?v=3&api_key=${apiKey}`, {
     redirect: 'manual',
-    headers: headers({ 'Cookie': cookies }),
+    headers: h({ Cookie: cookies }),
   })
   const location = connectRes.headers.get('location') ?? ''
   let requestToken: string | null = null
@@ -117,25 +119,52 @@ export async function getZerodhaAccessToken(
   }
   if (!requestToken) {
     throw new ExternalAPIError(
-      `Zerodha: no request_token in connect/login redirect. Location: "${location}". ` +
-      `Cookies present: ${cookies.split(';').map(c => c.trim().split('=')[0]).join(', ')}`,
+      `Zerodha: no request_token in redirect. Location: "${location}". ` +
+      `Cookies: ${cookies.split(';').map(c => c.trim().split('=')[0]).join(', ')}`,
       'zerodha'
     )
   }
 
   // Step 5 — exchange request_token for access_token
+  return exchangeRequestToken(apiKey, apiSecret, requestToken)
+}
+
+/** Exchange a Kite request_token for an access_token. */
+export async function exchangeRequestToken(apiKey: string, apiSecret: string, requestToken: string): Promise<string> {
   const checksum = createHash('sha256').update(apiKey + requestToken + apiSecret).digest('hex')
-  const sessionRes = await fetch('https://api.kite.trade/session/token', {
+  const res = await fetch('https://api.kite.trade/session/token', {
     method: 'POST',
-    headers: headers({ 'Content-Type': 'application/x-www-form-urlencoded', 'X-Kite-Version': '3' }),
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Kite-Version': '3' },
     body: new URLSearchParams({ api_key: apiKey, request_token: requestToken, checksum }),
   })
-  const sessionJson = await sessionRes.json().catch(() => ({})) as Record<string, unknown>
-  if (sessionJson.status !== 'success') {
-    const msg = (sessionJson.message as string | undefined) ?? sessionRes.statusText
+  const json = await res.json().catch(() => ({})) as Record<string, unknown>
+  if (json.status !== 'success') {
+    const msg = (json.message as string | undefined) ?? res.statusText
     throw new ExternalAPIError(`Zerodha session token failed: ${msg}`, 'zerodha')
   }
-  const token = ((sessionJson.data as Record<string, unknown>)?.access_token as string | undefined)
+  const token = ((json.data as Record<string, unknown>)?.access_token as string | undefined)
   if (!token) throw new ExternalAPIError('Zerodha session returned no access_token', 'zerodha')
   return token
+}
+
+/** Push access_token to adapter and mark account as adapter-active. */
+export async function pushZerodhaTokenToAdapter(accountId: string, apiKey: string, accessToken: string): Promise<void> {
+  const adapterUrl    = process.env.BROKER_ADAPTER_URL
+  const adapterSecret = process.env.BROKER_ADAPTER_SECRET
+  if (!adapterUrl || !adapterSecret) return
+
+  const res = await fetch(`${adapterUrl}/credentials/zerodha`, {
+    method: 'POST',
+    headers: { 'x-api-key': adapterSecret, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ env: { KITE_API_KEY: apiKey, KITE_ACCESS_TOKEN: accessToken } }),
+  })
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '')
+    throw new ExternalAPIError(`Adapter rejected Zerodha credentials: ${detail}`, 'zerodha')
+  }
+
+  await prisma.brokerAccount.update({
+    where: { id: accountId },
+    data: { jwtToken: encrypt(accessToken), isAdapterActive: true },
+  })
 }
