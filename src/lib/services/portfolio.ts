@@ -6,6 +6,7 @@ import { getFivePaisaHoldings } from '@/lib/services/5paisa'
 import { getMcpPortfolio } from '@/lib/mcp'
 import { brokerAdapter } from '@/lib/services/broker-adapter'
 import { isGrowwMcp } from '@/lib/broker'
+import { pushAccountToAdapter, isAdapterCredentialError } from '@/lib/services/adapter-sync'
 import type { AIRecommendation } from '@/app/types'
 
 function toPortfolioHolding(h: import('@/lib/services/broker-adapter').AdapterHolding, brokerAccountId: string): PortfolioHolding {
@@ -69,9 +70,20 @@ export async function getBrokerPortfolios(
     adapterAccounts.length
       ? Promise.allSettled(
           adapterAccounts.map(async (acc) => {
-            const items = await brokerAdapter.holdings(acc.brokerName.toLowerCase())
+            const fetchFromAdapter = () => brokerAdapter.holdings(acc.brokerName.toLowerCase())
+            let items: Awaited<ReturnType<typeof fetchFromAdapter>>
+            try {
+              items = await fetchFromAdapter()
+            } catch (e) {
+              if (isAdapterCredentialError(e)) {
+                // Adapter restarted and lost in-memory credentials — re-push and retry once
+                await pushAccountToAdapter(acc.id)
+                items = await fetchFromAdapter()
+              } else {
+                throw e
+              }
+            }
             if (items.length > 0) return items.map(h => toPortfolioHolding(h, acc.id))
-            // Adapter returned empty — fall back to direct API if broker supports it
             const direct = await directHoldings(acc)
             if (direct.length > 0) return direct
             return []

@@ -4,6 +4,7 @@ import { brokerAdapter } from '@/lib/services/broker-adapter'
 import { getGrowwPositions } from '@/lib/services/groww'
 import { getFivePaisaPositions } from '@/lib/services/5paisa'
 import { fetchLtp, resolveGrowwToken } from '@/lib/services/market-ltp'
+import { pushAccountToAdapter, isAdapterCredentialError } from '@/lib/services/adapter-sync'
 import type { PositionEntry } from '@/app/api/market/positions/route'
 
 function normalise(p: {
@@ -43,10 +44,19 @@ export async function fetchPositions(userId: string): Promise<PositionEntry[]> {
       const results = await Promise.allSettled(
         synced.map(async acc => {
           const brokerKey = acc.brokerName.toLowerCase()
-          const [positions, holdings] = await Promise.allSettled([
+
+          const adapterCall = () => Promise.allSettled([
             brokerAdapter.positions(brokerKey),
             brokerAdapter.holdings(brokerKey),
           ])
+
+          let [positions, holdings] = await adapterCall()
+          // If both failed with a credential error, re-push and retry once
+          const posErr = positions.status === 'rejected' ? positions.reason : null
+          if (posErr && isAdapterCredentialError(posErr)) {
+            await pushAccountToAdapter(acc.id).catch(() => null)
+            ;[positions, holdings] = await adapterCall()
+          }
           const rawPos  = positions.status === 'fulfilled' ? positions.value : []
           const rawHold = holdings.status  === 'fulfilled' ? holdings.value  : []
           const holdMap = Object.fromEntries(rawHold.map(h => [h.symbol, h]))
