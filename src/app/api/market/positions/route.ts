@@ -23,6 +23,11 @@ export async function GET() {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const positions = await fetchPositions(session.user.id)
-  return NextResponse.json(positions)
+  try {
+    const positions = await fetchPositions(session.user.id)
+    return NextResponse.json(positions)
+  } catch (e) {
+    console.error('[positions] fetchPositions threw:', e)
+    return NextResponse.json([])
+  }
 }

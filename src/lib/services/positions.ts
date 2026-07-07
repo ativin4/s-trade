@@ -47,10 +47,9 @@ export async function fetchPositions(userId: string): Promise<PositionEntry[]> {
             brokerAdapter.positions(brokerKey),
             brokerAdapter.holdings(brokerKey),
           ])
-          const rawPos   = positions.status === 'fulfilled' ? positions.value : []
-          const rawHold  = holdings.status  === 'fulfilled' ? holdings.value  : []
-          // Adapter MTF positions often return 0 for avgPrice/ltp — backfill from holdings
-          const holdMap  = Object.fromEntries(rawHold.map(h => [h.symbol, h]))
+          const rawPos  = positions.status === 'fulfilled' ? positions.value : []
+          const rawHold = holdings.status  === 'fulfilled' ? holdings.value  : []
+          const holdMap = Object.fromEntries(rawHold.map(h => [h.symbol, h]))
           return rawPos.map(p => {
             const h = holdMap[p.symbol]
             return normalise({
@@ -61,28 +60,28 @@ export async function fetchPositions(userId: string): Promise<PositionEntry[]> {
           })
         })
       )
+      // Collect what succeeded — failed brokers are silently omitted (positions, not critical data)
       let merged = results.flatMap(r => r.status === 'fulfilled' ? r.value : [])
-      // Backfill LTP from market data when adapter returns zeros (e.g. after-hours or expired token)
+      // Backfill LTP from market data when adapter returns zeros
       const zeroLtp = merged.filter(p => p.ltp === 0).map(p => p.symbol)
-      if (zeroLtp.length > 0 && merged.length > 0) {
+      if (zeroLtp.length > 0) {
         const firstAccount = synced[0]!
         const growwToken = await resolveGrowwToken(firstAccount.userId).catch(() => null)
         const ltpMap: Record<string, { price: number }> = await fetchLtp(zeroLtp, 'NSE', growwToken).catch(() => ({}))
         merged = merged.map(p => {
           const mkt = ltpMap[p.symbol]
           if (!mkt || p.ltp !== 0) return p
-          const ltp     = mkt.price
-          const unreal  = p.avgPrice > 0 ? (ltp - p.avgPrice) * p.qty : p.unrealisedPnl
-          const pnl     = p.realisedPnl + unreal
-          const pnlPct  = p.avgPrice > 0 && p.qty > 0 ? (unreal / (p.avgPrice * p.qty)) * 100 : 0
-          return { ...p, ltp, pnl, pnlPercent: pnlPct, unrealisedPnl: unreal }
+          const ltp    = mkt.price
+          const unreal = p.avgPrice > 0 ? (ltp - p.avgPrice) * p.qty : p.unrealisedPnl
+          return { ...p, ltp, pnl: p.realisedPnl + unreal, pnlPercent: p.avgPrice > 0 && p.qty > 0 ? (unreal / (p.avgPrice * p.qty)) * 100 : 0, unrealisedPnl: unreal }
         })
       }
-      if (merged.length > 0) return merged
+      // Return adapter results even if some brokers failed — others still show
+      if (results.some(r => r.status === 'fulfilled')) return merged
     }
   }
 
-  // Fallback: Groww direct API
+  // Fallback: direct API (for non-adapter accounts or when adapter unavailable)
   const results = await Promise.allSettled(
     accounts.map(async (acc): Promise<PositionEntry[]> => {
       const account = mapPrismaToAppAccount(acc)
