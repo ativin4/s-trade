@@ -1,5 +1,6 @@
 'use server'
 
+import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/auth'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -109,10 +110,12 @@ export async function disconnectBroker(brokerAccountId: string) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) throw new Error('Not authenticated')
 
-  await prisma.brokerAccount.update({
+  await prisma.brokerAccount.delete({
     where: { id: brokerAccountId, userId: session.user.id },
-    data: { isActive: false },
   })
+
+  revalidatePath('/brokers')
+  revalidatePath('/dashboard')
 }
 
 export async function storeBrokerToken(
